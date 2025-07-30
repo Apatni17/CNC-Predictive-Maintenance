@@ -1,7 +1,5 @@
 import pandas as pd
 import streamlit as st
-from utils import CNC
-from types import SimpleNamespace
 import matplotlib.pyplot as plt
 from sklearn.metrics import classification_report, confusion_matrix, accuracy_score, precision_score, recall_score, f1_score
 import seaborn as sns
