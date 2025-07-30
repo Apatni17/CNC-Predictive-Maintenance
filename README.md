@@ -1,141 +1,217 @@
-# CNC-Predictive-Maintenance
+# 🔧 CNC Predictive Maintenance Model Comparison
 
-This repository contains the code and data for a predictive maintenance system for CNC (Computer Numerical Control) machines. The system aims to predict potential failures and maintenance needs to minimize downtime and enhance operational efficiency.
+A machine learning application for comparing different models in predictive maintenance for CNC machines.
 
-## Table of Contents
+## 🎯 Features
 
-- [Introduction](#introduction)
-- [Installation](#installation)
-- [Data](#data)
-- [Usage](#usage)
-- [Configuration](#configuration)
-- [Contributing](#contributing)
-- [License](#license)
-- [Contact](#contact)
+- **Custom Data Sampling**: Choose training and testing distributions
+- **Model Comparison**: Compare Decision Tree, Random Forest, Logistic Regression, Gaussian Naive Bayes, K-Nearest Neighbors, and XGBoost
+- **Confusion Matrix Analysis**: Detailed analysis with practical implications
+- **Performance Metrics**: Accuracy, Precision, Recall, F1-Score comparison
 
-## Introduction
+## 🚀 Quick Start
 
-Predictive maintenance involves using data analysis tools and techniques to detect anomalies in operations and possible defects in equipment and processes so you can fix them before they result in failure. This project focuses on predictive maintenance for CNC machines, leveraging machine learning algorithms to predict failures based on historical data.
+### Local Development
 
-## Installation
+1. **Clone the repository**
+   ```bash
+   git clone <your-repo-url>
+   cd CNC-Predictive-Maintenance
+   ```
 
-To run this project locally, follow these steps:
+2. **Install dependencies**
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-1. Clone the repository:
-    ```bash
-    git clone https://github.com/Shengwei-Peng/CNC-Predictive-Maintenance.git
-    cd CNC-Predictive-Maintenance
-    ```
+3. **Run the app**
+   ```bash
+   streamlit run main.py
+   ```
 
-2. Install the required dependencies:
-    ```bash
-    pip install -r requirements.txt
-    ```
+4. **Open in browser**
+   - Navigate to `http://localhost:8501`
 
-## Data
+## 🌐 Deployment Options
 
-The dataset used in this project consists of historical data from CNC machines, including sensor readings, operational parameters, and maintenance logs. Below is a description of the main columns in the dataset:
+### Option 1: Deploy Streamlit App (Recommended)
 
-<details>
-<summary>Click to expand</summary>
+#### Deploy to Render (Free)
 
-| Column           | Description                                                                                     |
-|------------------|-------------------------------------------------------------------------------------------------|
-| **time**         | Timestamp indicating when the data was recorded.                                                |
-| **V_avg_machine**| The average voltage supplied to the CNC machine.                                                |
-| **I_avg_machine**| The average current drawn by the CNC machine.                                                   |
-| **kW_machine**   | Active power consumption of the CNC machine in kilowatts.                                       |
-| **kvar_machine** | Reactive power consumption of the CNC machine in kilovars.                                      |
-| **kVA_machine**  | Apparent power consumption of the CNC machine in kilovolt-amperes.                              |
-| **PF_machine**   | Power factor of the CNC machine, representing the efficiency of power usage.                    |
-| **kWh_machine**  | Total energy consumption of the CNC machine in kilowatt-hours.                                  |
-| **kvarh_machine**| Total reactive energy consumption of the CNC machine in kilovar-hours.                          |
-| **kVAh_machine** | Total apparent energy consumption of the CNC machine in kilovolt-ampere-hours.                  |
-| **V_avg_spindle**| The average voltage supplied to the spindle.                                                    |
-| **I_avg_spindle**| The average current drawn by the spindle.                                                       |
-| **kW_spindle**   | Active power consumption of the spindle in kilowatts.                                           |
-| **kvar_spindle** | Reactive power consumption of the spindle in kilovars.                                          |
-| **kVA_spindle**  | Apparent power consumption of the spindle in kilovolt-amperes.                                  |
-| **PF_spindle**   | Power factor of the spindle, indicating the efficiency of power usage.                          |
-| **kWh_spindle**  | Total energy consumption of the spindle in kilowatt-hours.                                      |
-| **kvarh_spindle**| Total reactive energy consumption of the spindle in kilovar-hours.                              |
-| **kVAh_spindle** | Total apparent energy consumption of the spindle in kilovolt-ampere-hours.                      |
-| **RPM**          | Rotational speed of the spindle in revolutions per minute.                                      |
-| **Anomaly**      | Boolean indicator signifying whether the data point is considered an anomaly (`True`/`False`).  |
+1. **Push to GitHub**
+   ```bash
+   git add .
+   git commit -m "Initial commit"
+   git push origin main
+   ```
 
-</details>
+2. **Deploy on Render**
+   - Go to [render.com](https://render.com)
+   - Sign up/Login with GitHub
+   - Click "New +" → "Web Service"
+   - Connect your GitHub repository
+   - Configure:
+     - **Name**: `cnc-predictive-maintenance`
+     - **Environment**: `Python`
+     - **Build Command**: `pip install -r requirements.txt`
+     - **Start Command**: `streamlit run main.py --server.port $PORT --server.address 0.0.0.0`
+   - Click "Create Web Service"
 
-### Example Data
+3. **Your app will be live at**: `https://your-app-name.onrender.com`
 
-<details>
-<summary>Click to expand</summary>
+#### Deploy to Streamlit Cloud (Alternative)
 
-| time                | V_avg_machine  | I_avg_machine | kW_machine | kvar_machine | kVA_machine | PF_machine | kWh_machine | kvarh_machine | kVAh_machine | V_avg_spindle | I_avg_spindle | kW_spindle | kvar_spindle | kVA_spindle | PF_spindle | kWh_spindle | kvarh_spindle | kVAh_spindle | RPM  | Anomaly |
-|---------------------|----------------|---------------|------------|--------------|-------------|------------|-------------|---------------|--------------|---------------|---------------|------------|--------------|-------------|------------|-------------|---------------|--------------|------|---------|
-| 2023-05-04 21:06:25 | 222.5558624268 | 3.978289604   | 1.184034824| 0.9684904218 | 1.529677153 | 0.774042308| 1.816337466 | 1.503314137   | 2.358232737  | 360.457244873 | 5.533977985   | 0.152448997| 2.475371122  | 2.480061054 | 0.061469857| 0.164464176 | 1.580153108   | 1.598300338  | 2500 | False   |
-| 2023-05-04 21:06:26 | 222.5959472656 | 3.980161905   | 1.184236288| 0.9688802361 | 1.530079126 | 0.773969958| 1.816667059 | 1.503583074   | 2.358657598  | 360.457244873 | 5.545718193   | 0.152648449| 2.477063417  | 2.481761694 | 0.061508474| 0.164548889 | 1.581528783   | 1.599682927  | 2500 | False   |
-| 2023-05-04 21:06:27 | 222.6310272217 | 3.984233379   | 1.184538126| 0.9686712027 | 1.530180931 | 0.774116392| 1.816996574 | 1.503852010   | 2.359082460  | 360.457244873 | 5.550326347   | 0.152649045| 2.478666782  | 2.48336339  | 0.061468504| 0.164590508 | 1.582217336   | 1.600376129  | 2500 | False   |
+1. **Push to GitHub** (same as above)
 
-</details>
+2. **Deploy on Streamlit Cloud**
+   - Go to [share.streamlit.io](https://share.streamlit.io)
+   - Sign in with GitHub
+   - Click "New app"
+   - Select your repository and main.py
+   - Click "Deploy"
 
-## Usage
+### Option 2: Convert to React + Backend (Advanced)
 
-To use this project, follow these steps:
+If you want a more scalable solution with React frontend:
 
-1. **Set Up Your Environment**:
-    Ensure you have followed the installation instructions to set up your environment.
+#### Backend (Python Flask)
 
-2. **Run the Streamlit Application**:
-    Open a terminal and run the following command to start the Streamlit application:
-    ```bash
-    streamlit run main.py
-    ```
+```python
+# app.py
+from flask import Flask, request, jsonify
+from flask_cors import CORS
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.naive_bayes import GaussianNB
+from sklearn.neighbors import KNeighborsClassifier
+from xgboost import XGBClassifier
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix
+import json
 
-3. **Interact with the Web Interface**:
-    Follow the instructions on the web interface to use the application:
+app = Flask(__name__)
+CORS(app)
 
-    - **Upload Your Dataset**:
-        Upload your dataset file in CSV format using the file uploader in the configuration panel on the left side of the interface.
+@app.route('/api/compare-models', methods=['POST'])
+def compare_models():
+    data = request.json
+    # Your model comparison logic here
+    return jsonify(results)
 
-    - **Configure Parameters**:
-        Set up the necessary parameters in the configuration panel on the left side of the interface.
+if __name__ == '__main__':
+    app.run(debug=True)
+```
 
-    - **Execute the Pipeline**:
-        Click the `🚀 Execute All` button to run the entire pipeline, including preprocessing, training, and evaluation.
+#### Frontend (React)
 
-    - **View the Results**:
-        The results, including various plots and evaluations, will be displayed on the right side of the interface.
+```jsx
+// App.js
+import React, { useState } from 'react';
+import axios from 'axios';
 
-## Configuration
+function App() {
+  const [file, setFile] = useState(null);
+  const [results, setResults] = useState(null);
 
-The configuration settings for running the scripts are defined as follows:
+  const handleFileUpload = async (event) => {
+    const file = event.target.files[0];
+    setFile(file);
+  };
 
-| Configuration                   | Description                                                                                                                                                        |
-| ------------------------------- |:------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Model**                       | The machine learning model to be used for prediction.                                                                                                              |
-| **Sampler**                     | Sampling method to balance the dataset.                                                                                                                            |
-| **Sampling Strategy**           | Desired number of samples for each class after resampling. You can specify the exact number of samples for non-anomalous and anomalous classes.                    |
-| **Future Steps**                | Number of future steps to predict. For example, if set to 3, the model will predict steps $K$, $K+1$, and $K+2$.                                                   |
-| **Window Size**                 | Size of the sliding window for feature extraction. For example, a window size of 3 means using the past 3 time steps $K-3$, $K-2$, $K-1$ to predict the next step. |
-| **Test Size**                   | Number of samples to include in the test split. This determines the amount of data reserved for testing the model.                                                 |
-| **Seed**                        | Random seed for reproducibility. Setting this ensures that the results are consistent across different runs.                                                       |
-| **Correlation Upper Threshold** | Upper correlation threshold for feature selection. Features with correlation higher than this threshold will be removed to avoid multicollinearity.                |
-| **Correlation Lower Threshold** | Lower correlation threshold for feature selection. Features with correlation lower than this threshold will be removed to avoid insignificant correlations.        |
+  const compareModels = async () => {
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    const response = await axios.post('/api/compare-models', formData);
+    setResults(response.data);
+  };
 
-## Contributing
+  return (
+    <div>
+      <h1>CNC Predictive Maintenance</h1>
+      <input type="file" onChange={handleFileUpload} />
+      <button onClick={compareModels}>Compare Models</button>
+      {results && <ResultsDisplay results={results} />}
+    </div>
+  );
+}
+```
 
-Contributions are welcome! Please follow these steps to contribute:
+## 📁 Project Structure
 
-1. Fork the repository.
-2. Create a new branch (`git checkout -b feature-branch`).
-3. Commit your changes (`git commit -am 'Add new feature'`).
-4. Push to the branch (`git push origin feature-branch`).
-5. Create a new Pull Request.
+```
+CNC-Predictive-Maintenance/
+├── main.py              # Main Streamlit application
+├── utils.py             # Utility functions (if needed)
+├── requirements.txt     # Python dependencies
+├── render.yaml          # Render deployment config
+├── README.md           # This file
+└── .gitignore          # Git ignore file
+```
 
-## License
+## 🔧 Configuration
 
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+### Environment Variables
 
-## Contact
+For Render deployment, you can set these in the dashboard:
+- `PYTHON_VERSION`: Python version (default: 3.9.16)
 
-For any questions or inquiries, please contact m11207330@mail.ntust.edu.tw
+### Customization
+
+You can modify:
+- **Model parameters** in `main.py`
+- **Sampling strategies** in the UI
+- **Visualization styles** in the display functions
+
+## 📊 Usage
+
+1. **Upload Dataset**: CSV file with your CNC machine data
+2. **Set Sampling**: Choose training/testing distributions
+3. **Select Models**: Pick which models to compare
+4. **View Results**: Analyze confusion matrices and metrics
+
+## 🛠️ Development
+
+### Adding New Models
+
+1. Import the model in `main.py`
+2. Add to `model_map` dictionary
+3. Add to model selection options
+
+### Adding New Metrics
+
+1. Import the metric from sklearn.metrics
+2. Add calculation in `compare_models()` function
+3. Update display in `display_results()` function
+
+## 📈 Performance Tips
+
+- **Large datasets**: Consider reducing sample sizes for faster processing
+- **Model selection**: Start with fewer models for quicker comparison
+- **Memory usage**: Monitor memory usage with large datasets
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Test thoroughly
+5. Submit a pull request
+
+## 📄 License
+
+This project is licensed under the MIT License.
+
+## 🆘 Support
+
+For issues and questions:
+- Create an issue on GitHub
+- Check the documentation
+- Review the code comments
+
+---
+
+**Happy Deploying! 🚀**

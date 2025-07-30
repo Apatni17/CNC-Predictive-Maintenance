@@ -63,17 +63,54 @@ class CNC():
         for i in range(self.args.future_steps):
             model = self.model_map[self.args.model]
             x, y = self.x_train, self.y_train[i]
+            print(f"🔧 Training step {i+1}: {len(x)} samples, {len(np.unique(y))} classes")
+            
             x, y, figs = self._sampling(x, y)
+            print(f"🔧 After sampling: {len(x)} samples, {len(np.unique(y))} classes")
+            
             if model is None:
                 raise ValueError(f"Unknown model type: {self.args.model}")
+            
+            # Check if we have enough samples for cross-validation
+            if len(x) < 5:
+                print(f"⚠️ Warning: Only {len(x)} samples available for training. This may cause issues with cross-validation.")
+            
             model.fit(x, y)
             self.models.append(model)
-            tuned_model = TunedThresholdClassifierCV(
-                estimator=model,
-                scoring="balanced_accuracy",
-                store_cv_results=True,
-                random_state=self.args.seed,
-            )
+            # Use custom threshold or automatic tuning
+            if getattr(self.args, 'use_custom_threshold', False) and getattr(self.args, 'custom_threshold', None) is not None:
+                # Use custom threshold
+                from sklearn.base import BaseEstimator, ClassifierMixin
+                
+                class CustomThresholdClassifier(BaseEstimator, ClassifierMixin):
+                    def __init__(self, estimator, threshold):
+                        self.estimator = estimator
+                        self.threshold = threshold
+                    
+                    def fit(self, X, y):
+                        self.estimator.fit(X, y)
+                        return self
+                    
+                    def predict(self, X):
+                        proba = self.estimator.predict_proba(X)[:, 1]
+                        return (proba >= self.threshold).astype(int)
+                    
+                    def predict_proba(self, X):
+                        return self.estimator.predict_proba(X)
+                
+                tuned_model = CustomThresholdClassifier(model, self.args.custom_threshold)
+                print(f"🎛️ Using custom threshold: {self.args.custom_threshold}")
+            else:
+                # Use automatic tuning with selected strategy
+                tuning_strategy = getattr(self.args, 'tuning_strategy', 'f1')
+                tuned_model = TunedThresholdClassifierCV(
+                    estimator=model,
+                    scoring=tuning_strategy,
+                    store_cv_results=True,
+                    random_state=self.args.seed,
+                )
+                print(f"🎯 Using automatic tuning with metric: {tuning_strategy}")
+            
             tuned_model.fit(x, y)
             self.tuned_models.append(tuned_model)
         return figs
@@ -81,8 +118,10 @@ class CNC():
     def evaluate(self):
         self.vanilla_preds = []
         self.tuned_preds = []
+        self.risk_assessments = []
         figs = []
         balanced_accuracy_scorer = get_scorer("balanced_accuracy")
+        
         for i in range(self.args.future_steps):
             
             vanilla_pred = self.models[i].predict(self.x_test)
@@ -96,16 +135,43 @@ class CNC():
             self.vanilla_preds.append(vanilla_pred)
             self.tuned_preds.append(tuned_pred)
             
+            # Risk assessment
+            risk_assessment = self._assess_risk(i)
+            self.risk_assessments.append(risk_assessment)
+            
             figs.append(self._visualize_classification_report(i + 1, vanilla_report, tuned_report))
             figs.append(self._plot_roc_pr_curves(i))
             figs.append(self._plot_confusion_matrix(i))
+            
+            # Add risk assessment visualization
+            if hasattr(self.args, 'risk_mode'):
+                risk_fig = self._visualize_risk_assessment(i, risk_assessment)
+                figs.append(risk_fig)
+        
         return figs
 
     def _load_data(self):
         data = self.args.data
-        data['time'] = pd.to_datetime(data['time']).astype('int64') // 10**9
-        self.x = data.drop(columns=['Anomaly'])
-        self.y = data['Anomaly']
+        
+        # Process time column if it exists
+        if 'time' in data.columns:
+            data['time'] = pd.to_datetime(data['time']).astype('int64') // 10**9
+        
+        # Use detected target column
+        target_column = getattr(self.args, 'target_column', 'Anomaly')
+        
+        # Drop target column and keep only numeric columns
+        self.x = data.drop(columns=[target_column])
+        
+        # Filter to only numeric columns for ML processing
+        numeric_columns = self.x.select_dtypes(include=[np.number]).columns
+        self.x = self.x[numeric_columns]
+        
+        # Print info about columns being used
+        print(f"Using {len(numeric_columns)} numeric features: {list(numeric_columns)}")
+        print(f"Target column: {target_column}")
+        
+        self.y = data[target_column]
 
     def _features_selection(self):
         
@@ -153,9 +219,22 @@ class CNC():
 
     def _split_data(self):
         y_list: List[np.ndarray] = [self.y[:, i] for i in range(self.args.future_steps)]
-        self.x_train, self.x_test, *y_splits = train_test_split(self.x, *y_list, test_size=self.args.test_size, random_state=self.args.seed)
+        print(f"📊 Total samples before split: {len(self.x)}")
+        print(f"📊 Test size requested: {self.args.test_size}")
+        
+        # Ensure test_size doesn't leave too few training samples
+        if self.args.test_size >= len(self.x):
+            test_size = max(1, len(self.x) - 10)  # Leave at least 10 samples for training
+            print(f"⚠️ Test size too large, using {test_size} instead")
+        else:
+            test_size = self.args.test_size
+            
+        self.x_train, self.x_test, *y_splits = train_test_split(self.x, *y_list, test_size=test_size, random_state=self.args.seed)
         self.y_train = [y_splits[i] for i in range(0, len(y_splits), 2)]
         self.y_test = [y_splits[i] for i in range(1, len(y_splits), 2)]
+        
+        print(f"📊 Training samples: {len(self.x_train)}")
+        print(f"📊 Test samples: {len(self.x_test)}")
 
     def _sampling(self, x: np.ndarray, y: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         if self.args.sampler != "None":
@@ -411,4 +490,114 @@ class CNC():
 
         fig.suptitle(f'Confusion Matrix of the Before and After Post-Tuning the Decision Threshold - Future step {i+1}', fontsize=20)
         plt.tight_layout(rect=[0, 0, 1, 0.96])
+        return fig
+
+    def _assess_risk(self, step_idx):
+        """Assess risk and provide maintenance recommendations"""
+        model = self.tuned_models[step_idx]
+        
+        # Get probability predictions
+        if hasattr(model, 'predict_proba'):
+            probabilities = model.predict_proba(self.x_test)[:, 1]  # Probability of anomaly
+        else:
+            probabilities = model.predict(self.x_test)
+        
+        # Risk assessment based on mode
+        risk_assessment = {
+            'high_risk_count': np.sum(probabilities > self.args.risk_threshold),
+            'total_samples': len(probabilities),
+            'risk_percentage': np.mean(probabilities > self.args.risk_threshold) * 100,
+            'avg_risk_score': np.mean(probabilities),
+            'max_risk_score': np.max(probabilities),
+            'risk_distribution': probabilities,
+            'recommendations': []
+        }
+        
+        # Generate recommendations based on risk mode
+        if self.args.risk_mode == 'High Risk Alert':
+            if risk_assessment['risk_percentage'] > 20:
+                risk_assessment['recommendations'].append("🚨 IMMEDIATE ACTION REQUIRED: High failure risk detected")
+            elif risk_assessment['risk_percentage'] > 10:
+                risk_assessment['recommendations'].append("⚠️ WARNING: Elevated failure risk - schedule maintenance")
+            else:
+                risk_assessment['recommendations'].append("✅ Normal operation - continue monitoring")
+                
+        elif self.args.risk_mode == 'Maintenance Planning':
+            if risk_assessment['risk_percentage'] > 15:
+                risk_assessment['recommendations'].append("🔧 Schedule preventive maintenance within 24 hours")
+            elif risk_assessment['risk_percentage'] > 8:
+                risk_assessment['recommendations'].append("📅 Plan maintenance within 1 week")
+            else:
+                risk_assessment['recommendations'].append("📊 Continue routine monitoring")
+                
+        elif self.args.risk_mode == 'Cost-Benefit Analysis':
+            # Calculate expected costs
+            expected_failure_cost = risk_assessment['avg_risk_score'] * self.args.failure_cost
+            preventive_cost = self.args.maintenance_cost
+            
+            if expected_failure_cost > preventive_cost * 1.5:
+                risk_assessment['recommendations'].append(f"💰 RECOMMENDED: Preventive maintenance saves ${expected_failure_cost - preventive_cost:.0f}")
+            elif expected_failure_cost > preventive_cost:
+                risk_assessment['recommendations'].append(f"⚖️ CONSIDER: Preventive maintenance saves ${expected_failure_cost - preventive_cost:.0f}")
+            else:
+                risk_assessment['recommendations'].append("✅ Cost-effective to continue operation")
+        
+        return risk_assessment
+
+    def _visualize_risk_assessment(self, step_idx, risk_assessment):
+        """Create risk assessment visualization"""
+        fig, axes = plt.subplots(2, 2, figsize=(16, 12))
+        fig.suptitle(f'Risk Assessment Dashboard - Future Step {step_idx + 1}', fontsize=16, fontweight='bold')
+        
+        # 1. Risk Distribution Histogram
+        axes[0, 0].hist(risk_assessment['risk_distribution'], bins=20, alpha=0.7, color='red', edgecolor='black')
+        axes[0, 0].axvline(self.args.risk_threshold, color='orange', linestyle='--', linewidth=2, label=f'Alert Threshold ({self.args.risk_threshold})')
+        axes[0, 0].set_xlabel('Risk Score (Probability of Failure)')
+        axes[0, 0].set_ylabel('Frequency')
+        axes[0, 0].set_title('Risk Score Distribution')
+        axes[0, 0].legend()
+        axes[0, 0].grid(True, alpha=0.3)
+        
+        # 2. Risk Summary Pie Chart
+        risk_labels = ['Low Risk', 'High Risk']
+        risk_sizes = [100 - risk_assessment['risk_percentage'], risk_assessment['risk_percentage']]
+        risk_colors = ['lightgreen', 'red']
+        
+        axes[0, 1].pie(risk_sizes, labels=risk_labels, colors=risk_colors, autopct='%1.1f%%', startangle=90)
+        axes[0, 1].set_title('Risk Level Distribution')
+        
+        # 3. Key Metrics Bar Chart
+        metrics = ['Avg Risk', 'Max Risk', 'High Risk %']
+        values = [risk_assessment['avg_risk_score'], risk_assessment['max_risk_score'], risk_assessment['risk_percentage']/100]
+        
+        bars = axes[1, 0].bar(metrics, values, color=['blue', 'red', 'orange'])
+        axes[1, 0].set_ylabel('Risk Score')
+        axes[1, 0].set_title('Key Risk Metrics')
+        axes[1, 0].set_ylim(0, 1)
+        
+        # Add value labels on bars
+        for bar, value in zip(bars, values):
+            height = bar.get_height()
+            axes[1, 0].text(bar.get_x() + bar.get_width()/2., height + 0.01,
+                           f'{value:.3f}', ha='center', va='bottom')
+        
+        # 4. Recommendations Text
+        axes[1, 1].axis('off')
+        recommendation_text = f"""
+Risk Assessment Summary:
+• High Risk Samples: {risk_assessment['high_risk_count']}/{risk_assessment['total_samples']}
+• Risk Percentage: {risk_assessment['risk_percentage']:.1f}%
+• Average Risk Score: {risk_assessment['avg_risk_score']:.3f}
+• Maximum Risk Score: {risk_assessment['max_risk_score']:.3f}
+
+Recommendations:
+"""
+        for rec in risk_assessment['recommendations']:
+            recommendation_text += f"• {rec}\n"
+        
+        axes[1, 1].text(0.05, 0.95, recommendation_text, transform=axes[1, 1].transAxes, 
+                       fontsize=12, verticalalignment='top', fontfamily='monospace',
+                       bbox=dict(boxstyle="round,pad=0.3", facecolor="lightblue", alpha=0.5))
+        
+        plt.tight_layout()
         return fig
