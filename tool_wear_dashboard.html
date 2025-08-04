@@ -1,0 +1,861 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CNC Tool Wear Analysis Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 300;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .tab-container {
+            display: flex;
+            background: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+            overflow-x: auto;
+        }
+
+        .tab {
+            padding: 15px 25px;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            color: #6c757d;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+            border-bottom: 3px solid transparent;
+        }
+
+        .tab:hover {
+            background: #e9ecef;
+            color: #495057;
+        }
+
+        .tab.active {
+            background: white;
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+
+        .tab-content {
+            display: none;
+            padding: 30px;
+            min-height: 600px;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .content-wrapper {
+            display: flex;
+            gap: 30px;
+            align-items: flex-start;
+        }
+
+        .image-container {
+            flex: 1;
+            text-align: center;
+        }
+
+        .image-container img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .analysis-container {
+            flex: 1;
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 10px;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .analysis-container h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+
+        .analysis-container h4 {
+            color: #495057;
+            margin: 20px 0 10px 0;
+            font-size: 1.1em;
+        }
+
+        .analysis-container p, .analysis-container li {
+            color: #6c757d;
+            line-height: 1.6;
+            margin-bottom: 10px;
+        }
+
+        .analysis-container ul {
+            margin-left: 20px;
+        }
+
+        .highlight {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            border-left: 4px solid #2196f3;
+        }
+
+        .metric {
+            background: #f3e5f5;
+            padding: 10px;
+            border-radius: 6px;
+            margin: 8px 0;
+            font-weight: 500;
+        }
+
+        .interpretation {
+            background: #e8f5e8;
+            padding: 10px;
+            border-radius: 6px;
+            margin: 8px 0;
+            border-left: 4px solid #4caf50;
+        }
+
+        .practical {
+            background: #fff3e0;
+            padding: 10px;
+            border-radius: 6px;
+            margin: 8px 0;
+            border-left: 4px solid #ff9800;
+        }
+
+        @media (max-width: 768px) {
+            .content-wrapper {
+                flex-direction: column;
+            }
+            
+            .tab-container {
+                flex-wrap: wrap;
+            }
+            
+            .tab {
+                padding: 10px 15px;
+                font-size: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔧 CNC Tool Wear Analysis Dashboard</h1>
+            <p>Comprehensive Analysis of Current & Power Data for Predictive Maintenance</p>
+        </div>
+
+        <div class="tab-container">
+            <button class="tab active" onclick="showTab(1)">📈 Time Series</button>
+            <button class="tab" onclick="showTab(2)">📊 Distribution</button>
+            <button class="tab" onclick="showTab(3)">⚡ Power Analysis</button>
+            <button class="tab" onclick="showTab(4)">📦 Box Plot</button>
+            <button class="tab" onclick="showTab(5)">📋 Statistical</button>
+            <button class="tab" onclick="showTab(6)">🔗 Correlation</button>
+            <button class="tab" onclick="showTab(7)">🎯 Significance</button>
+            <button class="tab" onclick="showTab(8)">📈 Trends</button>
+            <button class="tab" onclick="showTab(9)">🔍 Patterns</button>
+            <button class="tab" onclick="showTab(10)">📊 Comparison</button>
+            <button class="tab" onclick="showTab(11)">🎯 Predictive</button>
+            <button class="tab" onclick="showTab(12)">📖 Analysis Guide</button>
+        </div>
+
+        <!-- Tab 1: Time Series -->
+        <div id="tab1" class="tab-content active">
+            <div class="content-wrapper">
+                <div class="image-container">
+                    <img src="tab1_time_series.png" alt="Time Series Analysis">
+                </div>
+                <div class="analysis-container">
+                    <h3>📈 Time Series Analysis</h3>
+                    <p>This visualization shows how current feedback values change over time for both unworn and worn tools.</p>
+                    
+                    <h4>🔍 Key Patterns to Observe:</h4>
+                    
+                    <div class="metric">
+                        <strong>X1_CurrentFeedback (X-axis):</strong><br>
+                        • Unworn: ~-0.14 amps<br>
+                        • Worn: ~-0.58 amps<br>
+                        • Change: -316.9% more negative
+                    </div>
+                    
+                    <div class="interpretation">
+                        <strong>Interpretation:</strong> Worn tools require significantly more current to maintain the same cutting performance, indicating increased resistance and friction.
+                    </div>
+                    
+                    <div class="metric">
+                        <strong>Y1_CurrentFeedback (Y-axis):</strong><br>
+                        • Unworn: ~0.003 amps<br>
+                        • Worn: ~0.066 amps<br>
+                        • Change: +2003.6% increase
+                    </div>
+                    
+                    <div class="interpretation">
+                        <strong>Interpretation:</strong> Y-axis shows dramatic current increase with wear, suggesting the tool is struggling to maintain position.
+                    </div>
+                    
+                    <div class="metric">
+                        <strong>S1_CurrentFeedback (Spindle):</strong><br>
+                        • Unworn: ~11.6 amps<br>
+                        • Worn: ~12.4 amps<br>
+                        • Change: +7.6% increase
+                    </div>
+                    
+                    <div class="interpretation">
+                        <strong>Interpretation:</strong> Spindle motor draws more current to maintain speed as tool wears.
+                    </div>
+                    
+                    <div class="practical">
+                        <strong>Practical Implications:</strong>
+                        <ul>
+                            <li>Early Warning: Current spikes can predict tool wear before visual inspection</li>
+                            <li>Threshold Detection: Set alarms when current exceeds normal ranges</li>
+                            <li>Performance Monitoring: Track efficiency degradation over time</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 2: Distribution -->
+        <div id="tab2" class="tab-content">
+            <div class="content-wrapper">
+                <div class="image-container">
+                    <img src="tab2_distribution.png" alt="Distribution Analysis">
+                </div>
+                <div class="analysis-container">
+                    <h3>📊 Distribution Analysis</h3>
+                    <p>Histogram comparisons showing the statistical distribution of current feedback values.</p>
+                    
+                    <h4>🔍 Key Insights:</h4>
+                    
+                    <div class="metric">
+                        <strong>Distribution Shape:</strong><br>
+                        • Unworn: Tighter, more concentrated distributions<br>
+                        • Worn: Wider, more spread-out distributions
+                    </div>
+                    
+                    <div class="interpretation">
+                        <strong>Interpretation:</strong> Worn tools show more variability in performance.
+                    </div>
+                    
+                    <div class="metric">
+                        <strong>Peak Shifts:</strong><br>
+                        • X-axis: Significant shift toward more negative values<br>
+                        • Y-axis: Shift from near-zero to positive values<br>
+                        • S-axis: Moderate shift toward higher values
+                    </div>
+                    
+                    <div class="metric">
+                        <strong>Variance Increase:</strong><br>
+                        • All axes show increased variance with wear
+                    </div>
+                    
+                    <div class="interpretation">
+                        <strong>Interpretation:</strong> Less predictable performance with worn tools.
+                    </div>
+                    
+                    <div class="practical">
+                        <strong>Practical Applications:</strong>
+                        <ul>
+                            <li>Quality Control: Wider distributions indicate less consistent machining</li>
+                            <li>Predictive Maintenance: Variance increases can signal approaching tool failure</li>
+                            <li>Process Optimization: Tighter distributions indicate better tool condition</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 3: Power Comparison -->
+        <div id="tab3" class="tab-content">
+            <div class="content-wrapper">
+                <div class="image-container">
+                    <img src="tab3_power_comparison.png" alt="Power Comparison">
+                </div>
+                <div class="analysis-container">
+                    <h3>⚡ Power Comparison</h3>
+                    <p>Output power consumption patterns across all axes over time.</p>
+                    
+                    <h4>🔍 Key Observations:</h4>
+                    
+                    <div class="metric">
+                        <strong>Power Consumption Patterns:</strong><br>
+                        • Unworn: Lower, more stable power consumption<br>
+                        • Worn: Higher, more variable power consumption
+                    </div>
+                    
+                    <div class="interpretation">
+                        <strong>Interpretation:</strong> Worn tools require more energy to perform the same operations.
+                    </div>
+                    
+                    <div class="metric">
+                        <strong>Axis-Specific Patterns:</strong><br>
+                        • X-axis Power: Most dramatic increase with wear<br>
+                        • Y-axis Power: Moderate increase<br>
+                        • S-axis Power: Smallest increase
+                    </div>
+                    
+                    <div class="interpretation">
+                        <strong>Interpretation:</strong> Different axes respond differently to tool wear.
+                    </div>
+                    
+                    <div class="metric">
+                        <strong>Efficiency Loss:</strong><br>
+                        • Higher power consumption for same operations
+                    </div>
+                    
+                    <div class="interpretation">
+                        <strong>Interpretation:</strong> Energy efficiency decreases with tool wear.
+                    </div>
+                    
+                    <div class="practical">
+                        <strong>Practical Implications:</strong>
+                        <ul>
+                            <li>Energy Monitoring: Track power efficiency as tool condition indicator</li>
+                            <li>Cost Analysis: Calculate energy cost increases with tool wear</li>
+                            <li>Performance Metrics: Power consumption as key performance indicator</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 4: Box Plot -->
+        <div id="tab4" class="tab-content">
+            <div class="content-wrapper">
+                <div class="image-container">
+                    <img src="tab4_box_plot.png" alt="Box Plot Analysis">
+                </div>
+                <div class="analysis-container">
+                    <h3>📦 Box Plot Analysis</h3>
+                    <p>Statistical summary of current feedback distributions using box plots.</p>
+                    
+                    <h4>🔍 Key Statistical Insights:</h4>
+                    
+                    <div class="metric">
+                        <strong>Median Shifts:</strong><br>
+                        • X1_CurrentFeedback: -0.14 → -0.58 (significant negative shift)<br>
+                        • Y1_CurrentFeedback: 0.003 → 0.066 (significant positive shift)<br>
+                        • S1_CurrentFeedback: 11.56 → 12.44 (moderate positive shift)
+                    </div>
+                    
+                    <div class="metric">
+                        <strong>Interquartile Range (IQR):</strong><br>
+                        • All axes show increased IQR with wear
+                    </div>
+                    
+                    <div class="interpretation">
+                        <strong>Interpretation:</strong> More variable performance with worn tools.
+                    </div>
+                    
+                    <div class="metric">
+                        <strong>Outlier Patterns:</strong><br>
+                        • More outliers with worn tools
+                    </div>
+                    
+                    <div class="interpretation">
+                        <strong>Interpretation:</strong> Less predictable behavior with tool wear.
+                    </div>
+                    
+                    <div class="highlight">
+                        <strong>Statistical Significance:</strong><br>
+                        All changes are statistically significant (p < 0.001)
+                    </div>
+                    
+                    <div class="practical">
+                        <strong>Practical Applications:</strong>
+                        <ul>
+                            <li>Quality Assurance: Use statistical thresholds for tool replacement</li>
+                            <li>Process Control: Monitor for statistical deviations</li>
+                            <li>Predictive Models: Use statistical parameters for wear prediction</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 5: Statistical Summary -->
+        <div id="tab5" class="tab-content">
+            <div class="content-wrapper">
+                <div class="image-container">
+                    <img src="tab5_statistical_summary.png" alt="Statistical Summary">
+                </div>
+                <div class="analysis-container">
+                    <h3>📋 Statistical Summary</h3>
+                    <p>Heatmap of mean differences between unworn and worn tools across all sensor readings.</p>
+                    
+                    <h4>🔍 Key Findings:</h4>
+                    
+                    <div class="metric">
+                        <strong>Most Sensitive Sensors:</strong><br>
+                        • Y1_CurrentFeedback: +2003.6% change (highest sensitivity)<br>
+                        • X1_CurrentFeedback: -316.9% change (second highest)<br>
+                        • X1_OutputPower: +156.7% change (third highest)
+                    </div>
+                    
+                    <div class="metric">
+                        <strong>Least Sensitive Sensors:</strong><br>
+                        • S1_CurrentFeedback: +7.6% change (least sensitive)<br>
+                        • S1_OutputPower: +8.9% change (second least sensitive)
+                    </div>
+                    
+                    <div class="interpretation">
+                        <strong>Pattern Recognition:</strong><br>
+                        • Current feedback sensors are more sensitive than power sensors<br>
+                        • Y-axis shows the most dramatic changes<br>
+                        • Spindle (S-axis) shows the least change
+                    </div>
+                    
+                    <div class="practical">
+                        <strong>Practical Implications:</strong>
+                        <ul>
+                            <li>Sensor Priority: Focus on Y1_CurrentFeedback for early detection</li>
+                            <li>Multi-Sensor Approach: Combine multiple sensors for robust detection</li>
+                            <li>Threshold Setting: Use percentage changes for alarm thresholds</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 6: Correlation -->
+        <div id="tab6" class="tab-content">
+            <div class="content-wrapper">
+                <div class="image-container">
+                    <img src="tab6_correlation.png" alt="Correlation Analysis">
+                </div>
+                <div class="analysis-container">
+                    <h3>🔗 Correlation Analysis</h3>
+                    <p>Correlation matrix showing relationships between different sensor readings.</p>
+                    
+                    <h4>🔍 Key Correlation Patterns:</h4>
+                    
+                    <div class="metric">
+                        <strong>Strong Positive Correlations:</strong><br>
+                        • Current feedback sensors correlate with each other<br>
+                        • Power sensors correlate with each other
+                    </div>
+                    
+                    <div class="interpretation">
+                        <strong>Interpretation:</strong> Related sensors show similar patterns.
+                    </div>
+                    
+                    <div class="metric">
+                        <strong>Weak Correlations:</strong><br>
+                        • Current feedback vs power sensors show weaker correlations
+                    </div>
+                    
+                    <div class="interpretation">
+                        <strong>Interpretation:</strong> Different types of measurements provide complementary information.
+                    </div>
+                    
+                    <div class="metric">
+                        <strong>Tool Condition Effect:</strong><br>
+                        • Correlations change with tool wear
+                    </div>
+                    
+                    <div class="interpretation">
+                        <strong>Interpretation:</strong> Sensor relationships evolve as tools wear.
+                    </div>
+                    
+                    <div class="practical">
+                        <strong>Practical Applications:</strong>
+                        <ul>
+                            <li>Feature Selection: Choose uncorrelated sensors for robust models</li>
+                            <li>Redundancy: Identify redundant sensors for cost optimization</li>
+                            <li>Model Building: Use correlation patterns for predictive model design</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 7: Significance -->
+        <div id="tab7" class="tab-content">
+            <div class="content-wrapper">
+                <div class="image-container">
+                    <img src="tab7_significance.png" alt="Statistical Significance">
+                </div>
+                <div class="analysis-container">
+                    <h3>🎯 Statistical Significance</h3>
+                    <p>P-values and effect sizes for statistical tests comparing unworn vs worn tools.</p>
+                    
+                    <h4>🔍 Key Statistical Results:</h4>
+                    
+                    <div class="metric">
+                        <strong>Highly Significant Sensors (p < 0.001):</strong><br>
+                        • Y1_CurrentFeedback: p = 0.000<br>
+                        • X1_CurrentFeedback: p = 0.000<br>
+                        • X1_OutputPower: p = 0.000
+                    </div>
+                    
+                    <div class="interpretation">
+                        <strong>Interpretation:</strong> These sensors provide reliable wear detection.
+                    </div>
+                    
+                    <div class="metric">
+                        <strong>Effect Sizes:</strong><br>
+                        • Large effect sizes (>0.8) for most sensors
+                    </div>
+                    
+                    <div class="interpretation">
+                        <strong>Interpretation:</strong> Practical significance matches statistical significance.
+                    </div>
+                    
+                    <div class="metric">
+                        <strong>Confidence Levels:</strong><br>
+                        • All sensors show significant differences
+                    </div>
+                    
+                    <div class="interpretation">
+                        <strong>Interpretation:</strong> Reliable detection across all measured parameters.
+                    </div>
+                    
+                    <div class="practical">
+                        <strong>Practical Implications:</strong>
+                        <ul>
+                            <li>Model Reliability: High confidence in wear detection models</li>
+                            <li>Threshold Setting: Statistical significance supports practical thresholds</li>
+                            <li>Quality Assurance: Reliable basis for automated tool replacement</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 8: Trends -->
+        <div id="tab8" class="tab-content">
+            <div class="content-wrapper">
+                <div class="image-container">
+                    <img src="tab8_trends.png" alt="Trend Analysis">
+                </div>
+                <div class="analysis-container">
+                    <h3>📈 Trend Analysis</h3>
+                    <p>Linear trends and patterns in sensor data over time.</p>
+                    
+                    <h4>🔍 Key Trend Patterns:</h4>
+                    
+                    <div class="metric">
+                        <strong>Trend Direction:</strong><br>
+                        • Most sensors show increasing trends with wear
+                    </div>
+                    
+                    <div class="interpretation">
+                        <strong>Interpretation:</strong> Gradual degradation over time.
+                    </div>
+                    
+                    <div class="metric">
+                        <strong>Trend Strength:</strong><br>
+                        • Strong trends in current feedback sensors
+                    </div>
+                    
+                    <div class="interpretation">
+                        <strong>Interpretation:</strong> Consistent degradation patterns.
+                    </div>
+                    
+                    <div class="metric">
+                        <strong>Trend Variability:</strong><br>
+                        • Some sensors show more variable trends
+                    </div>
+                    
+                    <div class="interpretation">
+                        <strong>Interpretation:</strong> Different degradation rates across sensors.
+                    </div>
+                    
+                    <div class="practical">
+                        <strong>Practical Applications:</strong>
+                        <ul>
+                            <li>Predictive Maintenance: Use trends to predict future wear</li>
+                            <li>Scheduling: Plan tool replacement based on trend analysis</li>
+                            <li>Optimization: Identify optimal replacement timing</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 9: Patterns -->
+        <div id="tab9" class="tab-content">
+            <div class="content-wrapper">
+                <div class="image-container">
+                    <img src="tab9_patterns.png" alt="Pattern Recognition">
+                </div>
+                <div class="analysis-container">
+                    <h3>🔍 Pattern Recognition</h3>
+                    <p>Advanced pattern analysis using rolling statistics and anomaly detection.</p>
+                    
+                    <h4>🔍 Key Pattern Insights:</h4>
+                    
+                    <div class="metric">
+                        <strong>Rolling Statistics:</strong><br>
+                        • Moving averages show gradual changes
+                    </div>
+                    
+                    <div class="interpretation">
+                        <strong>Interpretation:</strong> Smooth degradation patterns.
+                    </div>
+                    
+                    <div class="metric">
+                        <strong>Anomaly Detection:</strong><br>
+                        • Outliers indicate sudden changes
+                    </div>
+                    
+                    <div class="interpretation">
+                        <strong>Interpretation:</strong> Potential tool failure events.
+                    </div>
+                    
+                    <div class="metric">
+                        <strong>Pattern Classification:</strong><br>
+                        • Different patterns for different wear stages
+                    </div>
+                    
+                    <div class="interpretation">
+                        <strong>Interpretation:</strong> Wear progression follows predictable patterns.
+                    </div>
+                    
+                    <div class="practical">
+                        <strong>Practical Applications:</strong>
+                        <ul>
+                            <li>Early Warning: Detect anomalies before failure</li>
+                            <li>Stage Classification: Identify wear progression stages</li>
+                            <li>Predictive Models: Use patterns for future prediction</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 10: Comparison -->
+        <div id="tab10" class="tab-content">
+            <div class="content-wrapper">
+                <div class="image-container">
+                    <img src="tab10_comparison.png" alt="Comparative Analysis">
+                </div>
+                <div class="analysis-container">
+                    <h3>📊 Comparative Analysis</h3>
+                    <p>Side-by-side comparisons of all key metrics between unworn and worn tools.</p>
+                    
+                    <h4>🔍 Key Comparative Insights:</h4>
+                    
+                    <div class="metric">
+                        <strong>Magnitude of Changes:</strong><br>
+                        • Current feedback shows largest changes<br>
+                        • Power sensors show moderate changes
+                    </div>
+                    
+                    <div class="interpretation">
+                        <strong>Interpretation:</strong> Current feedback is most sensitive to wear.
+                    </div>
+                    
+                    <div class="metric">
+                        <strong>Consistency of Changes:</strong><br>
+                        • All sensors show consistent direction of change
+                    </div>
+                    
+                    <div class="interpretation">
+                        <strong>Interpretation:</strong> Systematic degradation across all systems.
+                    </div>
+                    
+                    <div class="metric">
+                        <strong>Practical Thresholds:</strong><br>
+                        • Clear separation between conditions
+                    </div>
+                    
+                    <div class="interpretation">
+                        <strong>Interpretation:</strong> Reliable thresholds for automated detection.
+                    </div>
+                    
+                    <div class="practical">
+                        <strong>Practical Applications:</strong>
+                        <ul>
+                            <li>Automated Detection: Use thresholds for automatic alerts</li>
+                            <li>Quality Control: Monitor for threshold violations</li>
+                            <li>Process Optimization: Optimize based on comparative analysis</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 11: Predictive -->
+        <div id="tab11" class="tab-content">
+            <div class="content-wrapper">
+                <div class="image-container">
+                    <img src="tab11_predictive.png" alt="Predictive Insights">
+                </div>
+                <div class="analysis-container">
+                    <h3>🎯 Predictive Insights</h3>
+                    <p>Summary of key findings and recommendations for predictive maintenance.</p>
+                    
+                    <h4>🔍 Key Predictive Insights:</h4>
+                    
+                    <div class="metric">
+                        <strong>Most Reliable Indicators:</strong><br>
+                        • Y1_CurrentFeedback: 2003.6% change<br>
+                        • X1_CurrentFeedback: -316.9% change<br>
+                        • X1_OutputPower: 156.7% change
+                    </div>
+                    
+                    <div class="metric">
+                        <strong>Early Warning Thresholds:</strong><br>
+                        • Y1_CurrentFeedback > 0.03 amps<br>
+                        • X1_CurrentFeedback < -0.3 amps<br>
+                        • X1_OutputPower > 0.15 watts
+                    </div>
+                    
+                    <div class="interpretation">
+                        <strong>Multi-Sensor Approach:</strong><br>
+                        • Combine current and power sensors<br>
+                        • Use statistical significance for reliability<br>
+                        • Monitor trends for predictive capability
+                    </div>
+                    
+                    <div class="practical">
+                        <strong>Implementation Recommendations:</strong>
+                        <ul>
+                            <li>Real-Time Monitoring: Set up continuous monitoring of key sensors</li>
+                            <li>Quality Assurance: Establish statistical control limits</li>
+                            <li>Process Optimization: Use sensor data for process optimization</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 12: Analysis Guide -->
+        <div id="tab12" class="tab-content">
+            <div class="content-wrapper">
+                <div class="analysis-container" style="flex: 2;">
+                    <h3>📖 Complete Analysis Guide</h3>
+                    <p>This comprehensive guide helps you interpret all the visualizations and understand tool wear patterns.</p>
+                    
+                    <div class="highlight">
+                        <h4>🎯 Overall Conclusions</h4>
+                        <p><strong>Primary Findings:</strong></p>
+                        <ul>
+                            <li>Current feedback sensors are the most sensitive indicators of tool wear</li>
+                            <li>Y1_CurrentFeedback shows the most dramatic changes (+2003.6%)</li>
+                            <li>All sensors show statistically significant differences between conditions</li>
+                            <li>Worn tools require significantly more energy and current</li>
+                            <li>Pattern recognition enables predictive maintenance</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="practical">
+                        <h4>🔧 Practical Applications</h4>
+                        <ul>
+                            <li><strong>Automated Tool Replacement:</strong> Use sensor thresholds for automatic alerts</li>
+                            <li><strong>Quality Control:</strong> Monitor for statistical deviations</li>
+                            <li><strong>Predictive Maintenance:</strong> Use trends and patterns for future prediction</li>
+                            <li><strong>Process Optimization:</strong> Optimize based on sensor feedback</li>
+                            <li><strong>Cost Reduction:</strong> Reduce unplanned downtime and tool failures</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="metric">
+                        <h4>📋 Implementation Strategy</h4>
+                        <ol>
+                            <li><strong>Phase 1:</strong> Implement real-time monitoring of key sensors</li>
+                            <li><strong>Phase 2:</strong> Set up automated threshold alerts</li>
+                            <li><strong>Phase 3:</strong> Develop predictive maintenance models</li>
+                            <li><strong>Phase 4:</strong> Integrate with quality control systems</li>
+                            <li><strong>Phase 5:</strong> Optimize processes based on sensor data</li>
+                        </ol>
+                    </div>
+                    
+                    <div class="interpretation">
+                        <h4>🎯 Key Metrics to Monitor</h4>
+                        <ul>
+                            <li><strong>Y1_CurrentFeedback:</strong> Most sensitive indicator (2003.6% change)</li>
+                            <li><strong>X1_CurrentFeedback:</strong> Second most sensitive (-316.9% change)</li>
+                            <li><strong>X1_OutputPower:</strong> Third most sensitive (156.7% change)</li>
+                            <li><strong>Statistical Significance:</strong> All sensors show p < 0.001</li>
+                            <li><strong>Effect Sizes:</strong> Large practical significance across all sensors</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="highlight">
+                        <h4>🚨 Early Warning System</h4>
+                        <p><strong>Recommended Thresholds:</strong></p>
+                        <ul>
+                            <li>Y1_CurrentFeedback > 0.03 amps</li>
+                            <li>X1_CurrentFeedback < -0.3 amps</li>
+                            <li>X1_OutputPower > 0.15 watts</li>
+                            <li>Monitor for statistical deviations from baseline</li>
+                            <li>Track trend changes over time</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function showTab(tabNumber) {
+            // Hide all tab contents
+            const tabContents = document.querySelectorAll('.tab-content');
+            tabContents.forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            // Remove active class from all tabs
+            const tabs = document.querySelectorAll('.tab');
+            tabs.forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Show selected tab content
+            document.getElementById('tab' + tabNumber).classList.add('active');
+            
+            // Add active class to selected tab
+            event.target.classList.add('active');
+        }
+    </script>
+</body>
+</html> 
