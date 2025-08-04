@@ -290,7 +290,8 @@ def main():
         "Choose Analysis Page:",
         [
             "🏠 Home",
-            "📊 Tool Wear Initial Findings"
+            "📊 Tool Wear Initial Findings",
+            "🤖 ML Tool Wear Predictor"
         ]
     )
     
@@ -298,6 +299,8 @@ def main():
         show_predictive_maintenance()
     elif page == "📊 Tool Wear Initial Findings":
         show_tool_wear_findings()
+    elif page == "🤖 ML Tool Wear Predictor":
+        show_ml_predictor()
 
 def show_predictive_maintenance():
     st.markdown('<div class="main-header"><h1>🤖 Predictive Maintenance Tool</h1><p>Machine Learning Model Training & Evaluation</p></div>', unsafe_allow_html=True)
@@ -2178,6 +2181,602 @@ def show_cutting_forces_completion_analysis():
         st.markdown("""**🔧 Force Stability:** Cutting forces directly impact machine completion success. Stable forces ensure predictable operations, while force variations lead to incomplete or failed machining operations.""")
     with col2:
         st.markdown("""**⚡ Power Efficiency:** Understanding how cutting forces affect completion success enables optimization of machining parameters and predictive maintenance for improved operational reliability.""")
+
+def show_ml_predictor():
+    st.markdown('<div class="main-header"><h1>🤖 ML Tool Wear Predictor</h1><p>Upload Your Data and Get Predictions</p></div>', unsafe_allow_html=True)
+    
+    st.markdown("""
+    ## 🎯 **Tool Wear Prediction System**
+    
+    This AI-powered system can predict tool wear based on your CNC sensor data. The model was trained on **16 different machines** (experiments 1-4, 7-18) using a **75/25 train/test split**:
+    - **Current feedback patterns** (X, Y, S axes)
+    - **Power consumption trends** 
+    - **Velocity and acceleration stability**
+    - **Position tracking accuracy**
+    - **Completion rate indicators**
+    
+    ### 📊 **Training Strategy:**
+    - **16 Machines for Training:** Experiments 1, 2, 3, 4, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18
+    - **2 Machines Reserved:** Experiments 5 and 6 (for future testing)
+    - **75% Training / 25% Testing:** Robust validation approach
+    - **Multi-Machine Learning:** Generalizable across different CNC machines
+    
+    ### 📊 **How It Works:**
+    1. **Upload your sensor data** (CSV format)
+    2. **Model analyzes patterns** using our trained XGBoost algorithm
+    3. **Get predictions** with confidence scores
+    4. **Receive actionable insights** for maintenance decisions
+    """)
+    
+    # Initialize the predictor
+    try:
+        from tool_wear_predictor import ToolWearPredictor
+        predictor = ToolWearPredictor()
+        
+        # Always retrain the model with all experiments except 5 and 6 (75/25 split)
+        st.info("🔄 Training new model with all experiments except 5 and 6 (75/25 train/test split)...")
+        with st.spinner("Training model on 16 machines (experiments 1-4, 7-18)..."):
+            # Load and prepare data with new experiments
+            data = predictor.load_and_prepare_data_new()
+            X_train, X_test, y_train, y_test, feature_names = predictor.prepare_training_data(data)
+            model = predictor.train_xgboost_model(X_train, y_train, feature_names)
+            predictor.save_model('tool_wear_model_new.pkl')
+        st.success("✅ Model trained and saved successfully!")
+        
+        # Evaluate model and get metrics
+        from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix, classification_report
+        
+        # Make predictions on test set
+        y_pred = model.predict(X_test)
+        y_pred_proba = model.predict_proba(X_test)[:, 1]
+        
+        # Calculate key metrics
+        accuracy = accuracy_score(y_test, y_pred)
+        precision = precision_score(y_test, y_pred)
+        recall = recall_score(y_test, y_pred)
+        f1 = f1_score(y_test, y_pred)
+        
+        # Display training results
+        st.markdown("### 📊 **Model Training Results**")
+        col1, col2, col3, col4 = st.columns(4)
+        with col1:
+            st.metric("Training Samples", len(X_train))
+        with col2:
+            st.metric("Test Samples", len(X_test))
+        with col3:
+            st.metric("Features", len(feature_names))
+        with col4:
+            st.metric("Data Source", "16 Machines (1-4, 7-18)")
+        
+        # Display key ML metrics
+        st.markdown("### 🎯 **Model Performance Metrics**")
+        col1, col2, col3, col4 = st.columns(4)
+        with col1:
+            st.metric("Test Accuracy", f"{accuracy:.4f}", f"{accuracy*100:.2f}%")
+        with col2:
+            st.metric("Precision", f"{precision:.4f}", f"{precision*100:.2f}%")
+        with col3:
+            st.metric("Recall", f"{recall:.4f}", f"{recall*100:.2f}%")
+        with col4:
+            st.metric("F1-Score", f"{f1:.4f}", f"{f1*100:.2f}%")
+        
+        # Detailed classification report
+        st.markdown("### 📋 **Detailed Classification Report**")
+        report = classification_report(y_test, y_pred, target_names=['Unworn', 'Worn'], output_dict=True)
+        
+        # Create a formatted table
+        report_df = pd.DataFrame({
+            'Metric': ['Precision', 'Recall', 'F1-Score', 'Support'],
+            'Unworn': [report['Unworn']['precision'], report['Unworn']['recall'], 
+                      report['Unworn']['f1-score'], report['Unworn']['support']],
+            'Worn': [report['Worn']['precision'], report['Worn']['recall'], 
+                    report['Worn']['f1-score'], report['Worn']['support']],
+            'Overall': [report['weighted avg']['precision'], report['weighted avg']['recall'], 
+                       report['weighted avg']['f1-score'], report['weighted avg']['support']]
+        })
+        
+        st.dataframe(report_df, use_container_width=True)
+        
+        # Confusion Matrix
+        st.markdown("### 🔍 **Confusion Matrix**")
+        cm = confusion_matrix(y_test, y_pred)
+        fig_cm, ax_cm = plt.subplots(figsize=(8, 6))
+        sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', 
+                  xticklabels=['Unworn', 'Worn'], 
+                  yticklabels=['Unworn', 'Worn'])
+        ax_cm.set_title('Test Set Confusion Matrix')
+        ax_cm.set_xlabel('Predicted')
+        ax_cm.set_ylabel('Actual')
+        st.pyplot(fig_cm)
+        
+        # Performance interpretation
+        st.markdown("### 💡 **Performance Interpretation**")
+        if accuracy >= 0.95:
+            st.success("🎯 **EXCELLENT Performance:** Model is performing exceptionally well!")
+        elif accuracy >= 0.90:
+            st.info("✅ **GOOD Performance:** Model is performing well on test data.")
+        elif accuracy >= 0.85:
+            st.warning("⚠️ **FAIR Performance:** Model performance is acceptable but could be improved.")
+        else:
+            st.error("❌ **POOR Performance:** Model may need retraining or feature engineering.")
+        
+        # Key insights
+        st.markdown("### 🔍 **Key Insights**")
+        col1, col2 = st.columns(2)
+        with col1:
+            st.markdown(f"""
+            **📊 Test Set Performance:**
+            - **Accuracy:** {accuracy*100:.2f}% of predictions were correct
+            - **Precision:** {precision*100:.2f}% of predicted worn tools were actually worn
+            - **Recall:** {recall*100:.2f}% of actual worn tools were detected
+            - **F1-Score:** {f1*100:.2f}% balanced measure of precision and recall
+            """)
+        
+        with col2:
+            st.markdown(f"""
+            **🎯 Model Characteristics:**
+            - **Training Data:** {len(X_train)} samples from 16 machines
+            - **Test Data:** {len(X_test)} samples (25% of total)
+            - **Features:** {len(feature_names)} most important variables
+            - **Algorithm:** XGBoost with optimized parameters
+            """)
+        
+        # File upload section
+        st.markdown("### 📁 **Upload Your Single Machine Data**")
+        st.info("Upload data from a single machine with different timestamps to get personalized tool wear assessment.")
+        
+        uploaded_file = st.file_uploader(
+            "Choose your CNC sensor data file (CSV format)", 
+            type="csv",
+            help="Upload a CSV file with sensor data from a single machine across different timestamps"
+        )
+        
+        # Ground truth option for accuracy testing
+        st.markdown("### 🎯 **Model Accuracy Testing (Optional)**")
+        st.info("If you have ground truth labels for your data, you can test the model's accuracy.")
+        
+        has_ground_truth = st.checkbox("I have ground truth labels for accuracy testing")
+        
+        if has_ground_truth:
+            ground_truth_column = st.selectbox(
+                "Select the column containing ground truth labels (unworn/worn):",
+                ["None"] + ["tool_condition", "condition", "label", "target"] + [f"col_{i}" for i in range(1, 21)]
+            )
+        
+        if uploaded_file is not None:
+            try:
+                # Load the uploaded data
+                user_data = pd.read_csv(uploaded_file)
+                st.success(f"✅ Data loaded successfully! Shape: {user_data.shape}")
+                
+                # Display data info
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.write("**Data Preview:**")
+                    st.dataframe(user_data.head())
+                
+                with col2:
+                    st.write("**Required Columns Check:**")
+                    required_columns = [
+                        'X1_CurrentFeedback', 'Y1_CurrentFeedback', 'S1_CurrentFeedback',
+                        'X1_OutputPower', 'Y1_OutputPower', 'S1_OutputPower',
+                        'X1_ActualVelocity', 'Y1_ActualVelocity', 'S1_ActualVelocity',
+                        'X1_ActualAcceleration', 'Y1_ActualAcceleration', 'S1_ActualAcceleration',
+                        'X1_ActualPosition', 'Y1_ActualPosition', 'Z1_ActualPosition',
+                        'X1_CommandPosition', 'Y1_CommandPosition', 'Z1_CommandPosition'
+                    ]
+                    
+                    missing_columns = [col for col in required_columns if col not in user_data.columns]
+                    if missing_columns:
+                        st.error(f"❌ Missing columns: {missing_columns}")
+                        st.info("Please ensure your data contains all required sensor columns.")
+                    else:
+                        st.success("✅ All required columns present!")
+                
+                # Prediction section
+                if st.button("🔮 **Get Personalized Tool Wear Assessment**") and len(missing_columns) == 0:
+                    with st.spinner("Analyzing your machine data..."):
+                        # Make predictions
+                        predictions, probabilities = predictor.predict_new_data(user_data)
+                        
+                        # Calculate statistics
+                        total_samples = len(predictions)
+                        unworn_count = sum(predictions == 'unworn')
+                        worn_count = sum(predictions == 'worn')
+                        avg_probability = np.mean(probabilities)
+                        
+                        # Calculate wear percentage and risk assessment
+                        wear_percentage = (worn_count / total_samples) * 100
+                        
+                        # Determine risk level and tool wear status
+                        if wear_percentage >= 70:
+                            risk_level = "🔴 CRITICAL RISK"
+                            wear_status = "SEVERE TOOL WEAR"
+                            status_color = "#ff4444"
+                            risk_score = 95
+                        elif wear_percentage >= 50:
+                            risk_level = "🟠 HIGH RISK"
+                            wear_status = "SIGNIFICANT TOOL WEAR"
+                            status_color = "#ff8800"
+                            risk_score = 75
+                        elif wear_percentage >= 30:
+                            risk_level = "🟡 MODERATE RISK"
+                            wear_status = "MODERATE TOOL WEAR"
+                            status_color = "#ffaa00"
+                            risk_score = 55
+                        elif wear_percentage >= 15:
+                            risk_level = "🟢 LOW RISK"
+                            wear_status = "MINOR TOOL WEAR"
+                            status_color = "#00aa00"
+                            risk_score = 35
+                        else:
+                            risk_level = "🟢 MINIMAL RISK"
+                            wear_status = "NORMAL TOOL CONDITION"
+                            status_color = "#00ff00"
+                            risk_score = 15
+                        
+                        # Display personalized assessment
+                        st.markdown("### 🎯 **Personalized Tool Wear Assessment**")
+                        
+                        # Risk assessment banner
+                        st.markdown(f"""
+                        <div style="background-color: {status_color}; 
+                                    color: white; padding: 15px; border-radius: 8px; text-align: center; font-size: 20px; font-weight: bold; margin: 10px 0;">
+                        {risk_level} - {wear_status}
+                        </div>
+                        """, unsafe_allow_html=True)
+                        
+                        # Key metrics
+                        col1, col2, col3, col4 = st.columns(4)
+                        with col1:
+                            st.metric("Risk Score", f"{risk_score}%", f"{wear_percentage:.1f}% wear detected")
+                        with col2:
+                            st.metric("Tool Wear Level", f"{wear_percentage:.1f}%", f"{worn_count}/{total_samples} samples")
+                        with col3:
+                            st.metric("Confidence", f"{avg_probability:.3f}", "Model confidence")
+                        with col4:
+                            st.metric("Time Points", total_samples, "Data samples analyzed")
+                        
+                        # Detailed risk assessment
+                        st.markdown("### 📊 **Risk Assessment Details**")
+                        
+                        if risk_score >= 90:
+                            st.error(f"""
+                            **🔴 CRITICAL RISK ({risk_score}%)**
+                            
+                            **Tool Condition:** {wear_status}
+                            **Risk Level:** Extremely High
+                            **Immediate Actions Required:**
+                            - ⚠️ **STOP PRODUCTION IMMEDIATELY**
+                            - 🔧 **Replace tool immediately**
+                            - 📋 **Check all workpieces for defects**
+                            - 🚨 **Schedule emergency maintenance**
+                            - 📊 **Review and optimize machining parameters**
+                            - 💰 **Potential cost impact:** High (defective parts, machine damage)
+                            """)
+                        elif risk_score >= 70:
+                            st.warning(f"""
+                            **🟠 HIGH RISK ({risk_score}%)**
+                            
+                            **Tool Condition:** {wear_status}
+                            **Risk Level:** High
+                            **Recommended Actions:**
+                            - 🔍 **Monitor tool condition very closely**
+                            - ⚡ **Reduce feed rates by 20-30%**
+                            - 📅 **Schedule tool replacement within 24-48 hours**
+                            - 🔄 **Check cutting quality every 10 parts**
+                            - 📈 **Optimize cutting parameters**
+                            - 💰 **Potential cost impact:** Medium (reduced efficiency, quality issues)
+                            """)
+                        elif risk_score >= 50:
+                            st.info(f"""
+                            **🟡 MODERATE RISK ({risk_score}%)**
+                            
+                            **Tool Condition:** {wear_status}
+                            **Risk Level:** Moderate
+                            **Preventive Actions:**
+                            - 👁️ **Increase monitoring frequency**
+                            - 📋 **Plan tool replacement within 1 week**
+                            - 🔧 **Consider reducing cutting speeds by 10-15%**
+                            - 📊 **Track quality metrics closely**
+                            - 💰 **Potential cost impact:** Low (minor efficiency loss)
+                            """)
+                        elif risk_score >= 30:
+                            st.success(f"""
+                            **🟢 LOW RISK ({risk_score}%)**
+                            
+                            **Tool Condition:** {wear_status}
+                            **Risk Level:** Low
+                            **Maintenance Actions:**
+                            - 📅 **Plan tool replacement within 2-3 weeks**
+                            - 🔍 **Continue normal monitoring schedule**
+                            - ⚙️ **Optimize cutting parameters if needed**
+                            - 💰 **Potential cost impact:** Minimal
+                            """)
+                        else:
+                            st.success(f"""
+                            **🟢 MINIMAL RISK ({risk_score}%)**
+                            
+                            **Tool Condition:** {wear_status}
+                            **Risk Level:** Very Low
+                            **Current Status:**
+                            - ✅ **Tool is performing excellently**
+                            - 🔄 **Continue normal operations**
+                            - 📊 **Maintain regular monitoring schedule**
+                            - 💰 **Cost impact:** None (optimal performance)
+                            """)
+                        
+                        # Specific recommendations based on wear patterns
+                        st.markdown("### 💡 **Specific Recommendations**")
+                        
+                        # Analyze wear patterns over time
+                        if len(probabilities) > 10:
+                            recent_wear = np.mean(probabilities[-10:])  # Last 10 samples
+                            early_wear = np.mean(probabilities[:10])   # First 10 samples
+                            wear_trend = recent_wear - early_wear
+                            
+                            if wear_trend > 0.2:
+                                st.warning("⚠️ **Wear Trend Analysis:** Tool wear is INCREASING rapidly. Consider immediate replacement.")
+                            elif wear_trend > 0.1:
+                                st.info("📈 **Wear Trend Analysis:** Tool wear is INCREASING gradually. Monitor closely.")
+                            elif wear_trend < -0.1:
+                                st.success("📉 **Wear Trend Analysis:** Tool wear is DECREASING. Good maintenance practices.")
+                            else:
+                                st.info("➡️ **Wear Trend Analysis:** Tool wear is STABLE. Continue current practices.")
+                        
+                        # Maintenance schedule recommendation
+                        if risk_score >= 70:
+                            maintenance_schedule = "IMMEDIATE (within 24 hours)"
+                        elif risk_score >= 50:
+                            maintenance_schedule = "SOON (within 1 week)"
+                        elif risk_score >= 30:
+                            maintenance_schedule = "PLANNED (within 2-3 weeks)"
+                        else:
+                            maintenance_schedule = "REGULAR SCHEDULE (no urgency)"
+                        
+                        st.markdown(f"""
+                        **🔧 Maintenance Schedule:** {maintenance_schedule}
+                        **📊 Next Assessment:** Recommended in 24-48 hours
+                        **💰 Estimated Cost Impact:** {'High' if risk_score >= 70 else 'Medium' if risk_score >= 50 else 'Low' if risk_score >= 30 else 'Minimal'}
+                        """)
+                        
+                        # Simple and clear status cards
+                        st.markdown("### 📊 **Tool Wear Summary**")
+                        
+                        # Create status cards with better styling
+                        col1, col2 = st.columns(2)
+                        
+                        with col1:
+                            st.markdown(f"""
+                            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                                        color: white; padding: 20px; border-radius: 15px; text-align: center; margin: 10px 0;">
+                                <h3 style="margin: 0; font-size: 24px;">🔍 Tool Wear Level</h3>
+                                <p style="font-size: 36px; font-weight: bold; margin: 10px 0;">{wear_percentage:.1f}%</p>
+                                <p style="margin: 0; font-size: 16px;">of samples indicate wear</p>
+                            </div>
+                            """, unsafe_allow_html=True)
+                        
+                        with col2:
+                            st.markdown(f"""
+                            <div style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); 
+                                        color: white; padding: 20px; border-radius: 15px; text-align: center; margin: 10px 0;">
+                                <h3 style="margin: 0; font-size: 24px;">🎯 Risk Score</h3>
+                                <p style="font-size: 36px; font-weight: bold; margin: 10px 0;">{risk_score}%</p>
+                                <p style="margin: 0; font-size: 16px;">current risk level</p>
+                            </div>
+                            """, unsafe_allow_html=True)
+                        
+                        # Simple progress bar for wear level
+                        st.markdown("### 📈 **Tool Wear Progress**")
+                        wear_progress = wear_percentage / 100
+                        st.progress(wear_progress)
+                        
+                        # Color-coded wear status
+                        if wear_progress >= 0.7:
+                            wear_color = "#ff4444"
+                            wear_text = "🔴 CRITICAL - Immediate action required"
+                        elif wear_progress >= 0.5:
+                            wear_color = "#ff8800"
+                            wear_text = "🟠 HIGH - Schedule replacement soon"
+                        elif wear_progress >= 0.3:
+                            wear_color = "#ffaa00"
+                            wear_text = "🟡 MODERATE - Monitor closely"
+                        elif wear_progress >= 0.15:
+                            wear_color = "#00aa00"
+                            wear_text = "🟢 LOW - Plan for future replacement"
+                        else:
+                            wear_color = "#00ff00"
+                            wear_text = "🟢 EXCELLENT - Normal operation"
+                        
+                        st.markdown(f"""
+                        <div style="background-color: {wear_color}; color: white; padding: 15px; 
+                                    border-radius: 10px; text-align: center; font-size: 18px; font-weight: bold;">
+                        {wear_text}
+                        </div>
+                        """, unsafe_allow_html=True)
+                        
+                        # Insights and recommendations
+                        st.markdown("### 💡 **Insights & Recommendations**")
+                        
+                        if worn_count > unworn_count:
+                            st.warning("""
+                            ⚠️ **WARNING: Tool Wear Detected!**
+                            
+                            **Recommendations:**
+                            - Consider tool replacement soon
+                            - Monitor cutting quality closely
+                            - Reduce feed rates if possible
+                            - Schedule maintenance check
+                            """)
+                        elif worn_count > 0:
+                            st.info("""
+                            ⚠️ **CAUTION: Some Tool Wear Detected**
+                            
+                            **Recommendations:**
+                            - Monitor tool condition closely
+                            - Consider preventive maintenance
+                            - Check cutting quality regularly
+                            """)
+                        else:
+                            st.success("""
+                            ✅ **Tool Condition Appears Normal**
+                            
+                            **Recommendations:**
+                            - Continue normal operations
+                            - Monitor sensor patterns
+                            - Regular maintenance schedule
+                            """)
+                        
+                        # Model accuracy testing (if ground truth provided)
+                        if has_ground_truth and ground_truth_column != "None" and ground_truth_column in user_data.columns:
+                            st.markdown("### 📊 **Model Accuracy Assessment**")
+                            
+                            # Get ground truth labels
+                            ground_truth = user_data[ground_truth_column].str.lower()
+                            ground_truth = ground_truth.replace(['unworn', 'worn'], [0, 1])
+                            predictions_binary = (predictions == 'worn').astype(int)
+                            
+                            # Calculate metrics
+                            from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix
+                            
+                            accuracy = accuracy_score(ground_truth, predictions_binary)
+                            precision = precision_score(ground_truth, predictions_binary, zero_division=0)
+                            recall = recall_score(ground_truth, predictions_binary, zero_division=0)
+                            f1 = f1_score(ground_truth, predictions_binary, zero_division=0)
+                            
+                            # Display metrics
+                            col1, col2, col3, col4 = st.columns(4)
+                            with col1:
+                                st.metric("Accuracy", f"{accuracy:.3f}")
+                            with col2:
+                                st.metric("Precision", f"{precision:.3f}")
+                            with col3:
+                                st.metric("Recall", f"{recall:.3f}")
+                            with col4:
+                                st.metric("F1-Score", f"{f1:.3f}")
+                            
+                            # Simple accuracy display
+                            st.markdown("### ✅ **Model Performance**")
+                            
+                            # Create a simple accuracy card
+                            if accuracy >= 0.95:
+                                accuracy_color = "#00ff00"
+                                accuracy_status = "EXCELLENT"
+                                accuracy_emoji = "🎯"
+                            elif accuracy >= 0.90:
+                                accuracy_color = "#00aa00"
+                                accuracy_status = "GOOD"
+                                accuracy_emoji = "✅"
+                            elif accuracy >= 0.80:
+                                accuracy_color = "#ffaa00"
+                                accuracy_status = "FAIR"
+                                accuracy_emoji = "⚠️"
+                            else:
+                                accuracy_color = "#ff4444"
+                                accuracy_status = "POOR"
+                                accuracy_emoji = "❌"
+                            
+                            st.markdown(f"""
+                            <div style="background: linear-gradient(135deg, {accuracy_color}20 0%, {accuracy_color}40 100%); 
+                                        border: 2px solid {accuracy_color}; color: {accuracy_color}; padding: 20px; 
+                                        border-radius: 15px; text-align: center; margin: 10px 0;">
+                                <h3 style="margin: 0; font-size: 24px;">{accuracy_emoji} Model Accuracy</h3>
+                                <p style="font-size: 36px; font-weight: bold; margin: 10px 0;">{accuracy*100:.1f}%</p>
+                                <p style="margin: 0; font-size: 18px; font-weight: bold;">{accuracy_status} PERFORMANCE</p>
+                            </div>
+                            """, unsafe_allow_html=True)
+                            
+                            # Simple explanation
+                            if accuracy >= 0.95:
+                                st.success("🎯 **Excellent Performance:** The model is working very well on your machine data!")
+                            elif accuracy >= 0.90:
+                                st.info("✅ **Good Performance:** The model is performing well on your data.")
+                            elif accuracy >= 0.80:
+                                st.warning("⚠️ **Fair Performance:** The model is working but could be improved.")
+                            else:
+                                st.error("❌ **Poor Performance:** The model may need adjustment for your specific machine.")
+                        
+                        # Show simplified feature importance
+                        st.markdown("### 🔍 **What the Model Looks At**")
+                        if hasattr(predictor, 'feature_importance') and predictor.feature_importance is not None:
+                            top_features = predictor.feature_importance.head(5)
+                            
+                            st.markdown("**The model analyzes these key factors:**")
+                            
+                            for idx, row in top_features.iterrows():
+                                feature_name = row['feature']
+                                importance = row['importance']
+                                
+                                # Convert technical names to user-friendly descriptions
+                                if 'current' in feature_name.lower():
+                                    description = "Current feedback patterns"
+                                elif 'position' in feature_name.lower():
+                                    description = "Position tracking accuracy"
+                                elif 'power' in feature_name.lower():
+                                    description = "Power consumption efficiency"
+                                elif 'completion' in feature_name.lower():
+                                    description = "Completion rate indicators"
+                                elif 'ratio' in feature_name.lower():
+                                    description = "Current ratio patterns"
+                                else:
+                                    description = "Sensor data patterns"
+                                
+                                # Create a simple importance bar
+                                importance_pct = importance * 100
+                                st.markdown(f"""
+                                <div style="background: #f0f0f0; padding: 10px; border-radius: 8px; margin: 5px 0;">
+                                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                                        <span style="font-weight: bold;">{description}</span>
+                                        <span style="color: #666;">{importance_pct:.1f}%</span>
+                                    </div>
+                                    <div style="background: #ddd; height: 8px; border-radius: 4px; margin-top: 5px;">
+                                        <div style="background: linear-gradient(90deg, #667eea, #764ba2); 
+                                                    height: 100%; width: {importance_pct}%; border-radius: 4px;"></div>
+                                    </div>
+                                </div>
+                                """, unsafe_allow_html=True)
+                        
+            except Exception as e:
+                st.error(f"❌ Error processing your data: {str(e)}")
+                st.info("Please ensure your CSV file has the correct format and contains the required sensor columns.")
+        
+        # Sample data format
+        with st.expander("📋 **Sample Data Format**"):
+            st.markdown("""
+            Your CSV file should contain these columns:
+            
+            **Required Sensor Columns:**
+            - `X1_CurrentFeedback` - X-axis current feedback
+            - `Y1_CurrentFeedback` - Y-axis current feedback  
+            - `S1_CurrentFeedback` - Spindle current feedback
+            - `X1_OutputPower` - X-axis output power
+            - `Y1_OutputPower` - Y-axis output power
+            - `S1_OutputPower` - Spindle output power
+            - `X1_ActualVelocity` - X-axis actual velocity
+            - `Y1_ActualVelocity` - Y-axis actual velocity
+            - `S1_ActualVelocity` - Spindle actual velocity
+            - `X1_ActualAcceleration` - X-axis actual acceleration
+            - `Y1_ActualAcceleration` - Y-axis actual acceleration
+            - `S1_ActualAcceleration` - Spindle actual acceleration
+            - `X1_ActualPosition` - X-axis actual position
+            - `Y1_ActualPosition` - Y-axis actual position
+            - `Z1_ActualPosition` - Z-axis actual position
+            - `X1_CommandPosition` - X-axis command position
+            - `Y1_CommandPosition` - Y-axis command position
+            - `Z1_CommandPosition` - Z-axis command position
+            
+            **Data Format Example:**
+            ```csv
+            X1_CurrentFeedback,Y1_CurrentFeedback,S1_CurrentFeedback,X1_OutputPower,Y1_OutputPower,S1_OutputPower,...
+            0.123,0.456,0.789,0.012,0.034,0.056,...
+            ```
+            """)
+    
+    except ImportError:
+        st.error("❌ **Error: Tool Wear Predictor module not found**")
+        st.info("Please ensure `tool_wear_predictor.py` is in the same directory as this application.")
+    except Exception as e:
+        st.error(f"❌ **Error initializing predictor: {str(e)}**")
 
 if __name__ == "__main__":
     main() 
