@@ -294,19 +294,19 @@ def model_comparison_page():
                 with col2:
                     st.write("**Test distribution:**")
                     st.write(test_counts)
-                
-                # Model selection
-                st.markdown("### 🤖 Model Selection")
-                models_to_compare = st.multiselect(
-                    'Select models to compare:',
+            
+            # Model selection
+            st.markdown("### 🤖 Model Selection")
+            models_to_compare = st.multiselect(
+                'Select models to compare:',
                     ['Random Forest', 'Logistic Regression', 'SVM', 'Decision Tree', 'Gradient Boosting'],
                     default=['Random Forest', 'Logistic Regression']
-                )
-                
+            )
+            
                 if models_to_compare and st.button('🚀 Train and Compare Models'):
                     with st.spinner('Training models...'):
                         results = compare_models(training_data, test_data, target_column, models_to_compare)
-                        display_results(results, models_to_compare)
+                    display_results(results, models_to_compare)
         else:
             st.warning("⚠️ No target column found. Please ensure your dataset has a column indicating failures/anomalies.")
 
@@ -351,8 +351,8 @@ def compare_models(training_data, test_data, target_column, models_to_compare):
                 y_pred = model.predict(X_test_scaled)
                 y_pred_proba = model.predict_proba(X_test_scaled)[:, 1]
             else:
-                model.fit(X_train, y_train)
-                y_pred = model.predict(X_test)
+            model.fit(X_train, y_train)
+            y_pred = model.predict(X_test)
                 y_pred_proba = model.predict_proba(X_test)[:, 1]
             
             # Calculate metrics

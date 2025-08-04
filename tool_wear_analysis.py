@@ -107,17 +107,31 @@ class ToolWearAnalyzer:
         return available_features
         
     def create_correlation_matrix(self, features):
-        """Create correlation matrix with tool wear"""
-        print("\nCreating correlation matrix...")
+        """Create correlation matrix with only the most important variables"""
+        print("\nCreating correlation matrix with important variables...")
         
-        # Prepare data for correlation analysis
+        # First, get correlations with tool wear to identify important variables
         corr_data = self.sampled_data[features + ['tool_wear']].copy()
+        corr_matrix_full = corr_data.corr()
         
-        # Calculate correlations
-        corr_matrix = corr_data.corr()
+        # Get top correlations with tool wear (excluding tool_wear itself)
+        tool_wear_corr = corr_matrix_full['tool_wear'].abs().sort_values(ascending=False)
+        top_correlations = tool_wear_corr.head(16)  # Top 15 + tool_wear
+        
+        # Select only the most important variables (top 15 correlations)
+        important_vars = top_correlations.index.tolist()
+        if 'tool_wear' in important_vars:
+            important_vars.remove('tool_wear')
+        
+        # Add tool_wear back for the final matrix
+        final_vars = important_vars + ['tool_wear']
+        
+        # Create correlation matrix with only important variables
+        corr_data_important = self.sampled_data[final_vars].copy()
+        corr_matrix = corr_data_important.corr()
         
         # Create correlation heatmap
-        plt.figure(figsize=(20, 16))
+        plt.figure(figsize=(16, 14))
         
         # Create mask for upper triangle
         mask = np.triu(np.ones_like(corr_matrix, dtype=bool))
@@ -130,17 +144,17 @@ class ToolWearAnalyzer:
                    center=0,
                    square=True,
                    fmt='.2f',
-                   cbar_kws={"shrink": .8})
+                   cbar_kws={"shrink": .8},
+                   annot_kws={'size': 10})
         
-        plt.title('Correlation Matrix: Tool Wear vs Key Variables', fontsize=16, pad=20)
+        plt.title('Correlation Matrix: Tool Wear vs Most Important Variables', fontsize=16, pad=20)
         plt.tight_layout()
         plt.savefig('correlation_matrix.png', dpi=300, bbox_inches='tight')
         plt.show()
         
-        # Get top correlations with tool wear
-        tool_wear_corr = corr_matrix['tool_wear'].abs().sort_values(ascending=False)
-        print("\nTop 10 correlations with tool wear:")
-        print(tool_wear_corr.head(11))  # 11 to include tool_wear itself
+        # Print top correlations
+        print("\nTop 15 correlations with tool wear:")
+        print(tool_wear_corr.head(16))  # 16 to include tool_wear itself
         
         return corr_matrix
         

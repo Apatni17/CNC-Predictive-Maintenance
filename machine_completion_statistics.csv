@@ -1,0 +1,5 @@
+,X1_CommandVelocity,X1_CommandVelocity,Y1_CommandVelocity,Y1_CommandVelocity,S1_CommandVelocity,S1_CommandVelocity,X1_CurrentFeedback,X1_CurrentFeedback,Y1_CurrentFeedback,Y1_CurrentFeedback,X1_OutputCurrent,X1_OutputCurrent,Y1_OutputCurrent,Y1_OutputCurrent
+,mean,std,mean,std,mean,std,mean,std,mean,std,mean,std,mean,std
+completion_success,,,,,,,,,,,,,,
+0,15.46,16.838,3.407,19.942,45.971,18.471,10.74,4.937,-0.715,8.179,325.15,1.36,324.012,1.238
+1,-0.46,6.838,-0.597,7.591,33.373,25.734,-0.606,4.047,-0.128,4.425,326.842,1.645,325.732,1.925
