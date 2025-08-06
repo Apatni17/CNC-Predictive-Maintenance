@@ -4,6 +4,9 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
 import os
+import sys
+import subprocess
+from pathlib import Path
 from tool_wear_analysis import ToolWearAnalyzer
 
 # Set page config
@@ -1958,6 +1961,116 @@ def statistical_temporal_analysis_page():
             plt.tight_layout()
             st.pyplot(fig)
             plt.close()
+            
+            # Add experiment-specific Mahalanobis analysis section
+            st.markdown('<h4 class="section-header">📊 Experiment-Specific Mahalanobis Analysis</h4>', unsafe_allow_html=True)
+            
+            # Create experiment-specific analysis plots
+            try:
+                # Generate plots for this specific experiment
+                exp_fig, exp_axes = plt.subplots(1, 3, figsize=(18, 6))
+                exp_fig.suptitle(f'Mahalanobis Distance Analysis - {uploaded_file.name}', fontsize=16, fontweight='bold')
+                
+                if 'mahalanobis_distance' in temporal_data.columns:
+                    mahal_distances = temporal_data['mahalanobis_distance'].values
+                    time_steps = np.arange(len(mahal_distances))
+                    progress_pct = np.linspace(0, 100, len(mahal_distances))
+                    threshold = 21.026
+                    
+                    # Plot 1: Mahalanobis Distance vs Time Steps
+                    exp_axes[0].plot(time_steps, mahal_distances, 'b-', linewidth=2, alpha=0.7)
+                    exp_axes[0].axhline(y=threshold, color='red', linestyle='--', linewidth=2, 
+                                       label=f'Threshold ({threshold:.1f})')
+                    exp_axes[0].fill_between(time_steps, mahal_distances, alpha=0.3, color='blue')
+                    exp_axes[0].set_xlabel('Time Steps')
+                    exp_axes[0].set_ylabel('Mahalanobis Distance')
+                    exp_axes[0].set_title('Distance Over Time')
+                    exp_axes[0].grid(True, alpha=0.3)
+                    exp_axes[0].legend()
+                    
+                    # Plot 2: % Progress when threshold exceeded
+                    threshold_crossings = np.where(mahal_distances > threshold)[0]
+                    if len(threshold_crossings) > 0:
+                        first_crossing_pct = (threshold_crossings[0] / len(mahal_distances)) * 100
+                        exp_axes[1].bar(['This Experiment'], [first_crossing_pct], 
+                                       color='orange', alpha=0.7, width=0.5)
+                        exp_axes[1].set_ylabel('% Into Experiment')
+                        exp_axes[1].set_title('When Threshold First Exceeded')
+                        exp_axes[1].set_ylim(0, 100)
+                        exp_axes[1].grid(True, alpha=0.3)
+                        
+                        # Add text annotation
+                        exp_axes[1].text(0, first_crossing_pct + 5, f'{first_crossing_pct:.1f}%', 
+                                        ha='center', va='bottom', fontweight='bold')
+                    else:
+                        first_crossing_pct = None  # Set to None when no crossing occurs
+                        exp_axes[1].bar(['This Experiment'], [0], color='green', alpha=0.7, width=0.5)
+                        exp_axes[1].set_ylabel('% Into Experiment')
+                        exp_axes[1].set_title('No Threshold Crossing')
+                        exp_axes[1].text(0, 10, 'No Crossing\nDetected', ha='center', va='center', 
+                                        fontweight='bold', fontsize=12)
+                        exp_axes[1].set_ylim(0, 100)
+                        exp_axes[1].grid(True, alpha=0.3)
+                    
+                    # Plot 3: Maximum distance comparison with threshold
+                    max_distance = np.max(mahal_distances)
+                    colors = ['red' if max_distance > threshold else 'green']
+                    exp_axes[2].bar(['Max Distance'], [max_distance], color=colors[0], alpha=0.7, width=0.5)
+                    exp_axes[2].axhline(y=threshold, color='red', linestyle='--', linewidth=2, 
+                                       label=f'Threshold ({threshold:.1f})')
+                    exp_axes[2].set_ylabel('Mahalanobis Distance')
+                    exp_axes[2].set_title('Maximum Distance vs Threshold')
+                    exp_axes[2].legend()
+                    exp_axes[2].grid(True, alpha=0.3)
+                    
+                    # Add text annotation for max distance
+                    exp_axes[2].text(0, max_distance + 1, f'{max_distance:.2f}', 
+                                    ha='center', va='bottom', fontweight='bold')
+                    
+                    plt.tight_layout()
+                    st.pyplot(exp_fig)
+                    plt.close()
+                    
+                    # Analysis summary for this experiment
+                    crossing_text = f"{first_crossing_pct:.1f}%" if first_crossing_pct is not None else "Never"
+                    crossing_description = ""
+                    if first_crossing_pct is not None:
+                        if first_crossing_pct < 50:
+                            crossing_description = "Early detection"
+                        else:
+                            crossing_description = "Late detection"
+                    else:
+                        crossing_description = "No crossing detected"
+                    
+                    st.markdown(f"""
+                    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                               color: white; padding: 20px; border-radius: 10px; margin: 20px 0;">
+                    <h4>🎯 Analysis Summary for {uploaded_file.name}</h4>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px;">
+                        <div>
+                            <h5>📊 Maximum Distance</h5>
+                            <p><strong>{max_distance:.2f}</strong></p>
+                            <p>{'🔴 Above threshold' if max_distance > threshold else '🟢 Within normal range'}</p>
+                        </div>
+                        <div>
+                            <h5>⚡ First Crossing</h5>
+                            <p><strong>{crossing_text}</strong> into operation</p>
+                            <p>{crossing_description}</p>
+                        </div>
+                        <div>
+                            <h5>🎯 Total Crossings</h5>
+                            <p><strong>{len(threshold_crossings)}</strong> times</p>
+                            <p>{'Frequent anomalies' if len(threshold_crossings) > len(mahal_distances)*0.1 else 'Occasional anomalies' if len(threshold_crossings) > 0 else 'No anomalies'}</p>
+                        </div>
+                    </div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    
+                else:
+                    st.warning("⚠️ Mahalanobis distance data not available for this experiment.")
+                    
+            except Exception as e:
+                st.error(f"❌ Error creating experiment-specific analysis: {str(e)}")
             
             # Statistical benefits
             st.markdown('<h4 class="section-header">🎯 Why This Analysis is Powerful</h4>', unsafe_allow_html=True)
