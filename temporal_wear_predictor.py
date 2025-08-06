@@ -45,9 +45,24 @@ class TemporalWearPredictor:
         data['time_step'] = range(len(data))
         data['time_progress'] = data['time_step'] / (len(data) - 1)  # 0 to 1 progression
         
-        # Create wear progression target based on time
-        # Assumption: wear increases progressively through the experiment
-        data['wear_progression'] = data['time_progress']  # Linear progression from 0 to 1
+        # Determine starting wear level based on experiment type
+        fresh_tool_experiments = [1, 2, 3, 4, 5, 11, 12, 17]  # Fresh/unworn tools
+        worn_tool_experiments = [6, 7, 8, 9, 10, 13, 14, 15, 16, 18]  # Pre-worn tools
+        
+        if experiment_id in fresh_tool_experiments:
+            starting_wear = 0.0  # Fresh tool starts at 0% wear
+            ending_wear = 0.6    # Fresh tool reaches moderate wear by end
+        elif experiment_id in worn_tool_experiments:
+            starting_wear = 0.7  # Pre-worn tool starts at 70% wear
+            ending_wear = 1.0    # Pre-worn tool reaches full wear by end
+        else:
+            # Default case for unknown experiments
+            starting_wear = 0.0
+            ending_wear = 1.0
+        
+        # Create realistic wear progression target based on tool starting condition
+        wear_range = ending_wear - starting_wear
+        data['wear_progression'] = starting_wear + (data['time_progress'] * wear_range)
         
         # Rolling statistics to capture temporal trends
         window_sizes = [10, 25, 50]
@@ -252,8 +267,20 @@ class TemporalWearPredictor:
         if isinstance(data, str):
             data = pd.read_csv(data)
         
-        exp_id = experiment_id if experiment_id else 999  # Default ID for new data
-        temporal_data = self.create_temporal_features(data, exp_id)
+        # Try to detect experiment ID from filename if not provided
+        if experiment_id is None:
+            # Try to extract from common filename patterns
+            import re
+            if hasattr(data, 'name') and data.name:
+                match = re.search(r'experiment_(\d+)', str(data.name))
+                if match:
+                    experiment_id = int(match.group(1))
+            
+            # Default for unknown experiments (assume fresh tool)
+            if experiment_id is None:
+                experiment_id = 999
+        
+        temporal_data = self.create_temporal_features(data, experiment_id)
         
         # Prepare features
         X = temporal_data[self.feature_names].fillna(0)
@@ -415,7 +442,11 @@ class TemporalWearPredictor:
         • Test F1-Score: {metrics['test_f1']:.3f}
         
         🔧 Features: {len(feature_importance)} temporal
-        🕒 Approach: Time-series progression
+        🕒 Approach: Realistic wear progression
+        
+        🛠️ Tool Types:
+        • Fresh: 0% → 60% wear progression
+        • Worn: 70% → 100% wear progression
         """
         
         axes[1,2].text(0.1, 0.5, summary_text, transform=axes[1,2].transAxes,

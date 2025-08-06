@@ -273,28 +273,24 @@ class ValidationToolWearPredictor:
         max_wear_prob = np.max(wear_probabilities)
         risk_std = np.std(wear_probabilities)
         
-        # Determine risk level
-        if avg_wear_prob > 0.7:
-            risk_level = "🔴 HIGH RISK"
-            risk_description = "Tool shows significant wear indicators - immediate attention required"
-        elif avg_wear_prob > 0.4:
-            risk_level = "🟡 MEDIUM RISK"
-            risk_description = "Tool shows moderate wear indicators - preventive action recommended"
-        else:
-            risk_level = "🟢 LOW RISK"
-            risk_description = "Tool appears to be in good condition - continue monitoring"
-        
-        # Analyze key indicators
+        # Analyze key indicators first to get context
         issues = []
         recommendations = []
         
-        # Check cutting forces
+        # Check cutting forces - corrected threshold based on worn vs unworn analysis
         if 'X1_CurrentFeedback' in data.columns:
             current_feedback = data['X1_CurrentFeedback'].mean()
-            if current_feedback > -0.3:
+            # Analysis shows worn tools have more negative values (lower cutting forces)
+            # Unworn tools: -0.2 to -0.6, Worn tools: -0.3 to -1.1
+            # So we check for unusually high cutting forces (less negative values)
+            if current_feedback > -0.1:
                 issues.append(f"⚠️ High cutting forces detected ({current_feedback:.3f})")
                 recommendations.append("Reduce feedrate by 15-20% to decrease cutting forces")
                 recommendations.append("Check tool sharpness and consider tool replacement")
+            elif current_feedback < -0.35:
+                issues.append(f"⚠️ Unusually low cutting forces detected ({current_feedback:.3f})")
+                recommendations.append("Check tool condition - may indicate excessive wear")
+                recommendations.append("Verify cutting parameters and material compatibility")
         
         # Check power supply
         if 'X1_DCBusVoltage' in data.columns:
@@ -328,14 +324,51 @@ class ValidationToolWearPredictor:
                 recommendations.append("Optimize cutting parameters for efficiency")
                 recommendations.append("Check tool geometry and material compatibility")
         
+        # IMPROVED RISK ASSESSMENT: Consider both model prediction and actual issues
+        # If model predicts high wear but no actual issues detected, this might be a false positive
+        model_confidence_issue = False
+        
+        # Check for model generalization issues
+        if avg_wear_prob > 0.7:
+            if len(issues) == 0:
+                # High wear prediction but no issues - potential model generalization problem
+                model_confidence_issue = True
+                risk_level = "🟡 MEDIUM RISK"
+                risk_description = "Model predicts wear but no operational issues detected - recommend manual inspection"
+                recommendations.append("⚠️ Model prediction may be unreliable for this data - perform manual tool inspection")
+                recommendations.append("Consider retraining model with more diverse data if this pattern continues")
+            elif len(issues) == 1 and 'cutting forces' in issues[0].lower() and 'X1_CurrentFeedback' in data.columns and data['X1_CurrentFeedback'].mean() > -0.3:
+                # High wear prediction with only minor cutting force issue - likely false positive
+                model_confidence_issue = True
+                risk_level = "🟡 MEDIUM RISK"
+                risk_description = "Model predicts wear but only minor operational issues detected - recommend manual inspection"
+                recommendations.append("⚠️ Model prediction may be unreliable - cutting forces are within normal range for unworn tools")
+                recommendations.append("Perform manual tool inspection to verify actual condition")
+            else:
+                # High wear prediction with actual issues - likely correct
+                risk_level = "🔴 HIGH RISK"
+                risk_description = "Tool shows significant wear indicators - immediate attention required"
+        elif avg_wear_prob > 0.4:
+            risk_level = "🟡 MEDIUM RISK"
+            risk_description = "Tool shows moderate wear indicators - preventive action recommended"
+        else:
+            risk_level = "🟢 LOW RISK"
+            risk_description = "Tool appears to be in good condition - continue monitoring"
+        
         # Generate prevention strategies
         prevention_strategies = []
         
-        if avg_wear_prob > 0.6:
+        if avg_wear_prob > 0.6 and not model_confidence_issue:
             prevention_strategies.append({
                 'priority': 'Immediate',
                 'action': 'Schedule tool replacement within 24-48 hours',
                 'reason': 'High wear probability indicates imminent tool failure'
+            })
+        elif model_confidence_issue:
+            prevention_strategies.append({
+                'priority': 'Medium',
+                'action': 'Perform manual tool inspection and validation',
+                'reason': 'Model prediction may be unreliable - manual verification needed'
             })
         
         if len(issues) > 2:
@@ -361,6 +394,10 @@ class ValidationToolWearPredictor:
             "Maintain clean and well-lubricated machine components"
         ]
         
+        # Add model reliability warning if needed
+        if model_confidence_issue:
+            general_recommendations.append("⚠️ Model may need retraining with more diverse data")
+        
         return {
             'risk_level': risk_level,
             'risk_description': risk_description,
@@ -371,7 +408,8 @@ class ValidationToolWearPredictor:
             'recommendations': recommendations,
             'prevention_strategies': prevention_strategies,
             'general_recommendations': general_recommendations,
-            'wear_probabilities': wear_probabilities
+            'wear_probabilities': wear_probabilities,
+            'model_confidence_issue': model_confidence_issue
         }
     
     def create_validation_report(self, data, wear_probabilities, analysis_results, machine_name):
@@ -379,6 +417,10 @@ class ValidationToolWearPredictor:
         fig, axes = plt.subplots(2, 2, figsize=(16, 12))
         
         # 1. Risk Assessment
+        model_warning = ""
+        if analysis_results.get('model_confidence_issue', False):
+            model_warning = "\n        ⚠️ MODEL RELIABILITY WARNING: High wear prediction with no operational issues detected"
+        
         risk_text = f"""
         🏭 {machine_name}
         
@@ -391,7 +433,7 @@ class ValidationToolWearPredictor:
         ⚠️ Issues Found: {len(analysis_results['issues'])}
         💡 Recommendations: {len(analysis_results['recommendations'])}
         
-        🎯 Model Test Accuracy: {self.test_accuracy:.1%}
+        🎯 Model Test Accuracy: {self.test_accuracy:.1%}{model_warning}
         """
         
         axes[0,0].text(0.1, 0.5, risk_text, transform=axes[0,0].transAxes, 
