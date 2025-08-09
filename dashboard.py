@@ -252,9 +252,9 @@ def overview_page():
         using Mahalanobis distance for multivariate anomaly detection.</p>
         </div>
         """, unsafe_allow_html=True)
-    
-    with col2:
-        st.markdown("""
+        
+        with col2:
+            st.markdown("""
         <div class="success-box">
         <h4>🎯 Discovery 3: Feature Engineering</h4>
         <p>Developed <strong>156 temporal features</strong> including rolling statistics, 
@@ -267,23 +267,23 @@ def overview_page():
         <h4>⚡ Discovery 4: Real-time Detection</h4>
         <p>Achieved <strong>real-time anomaly detection</strong> with 95% confidence intervals, 
         enabling proactive maintenance rather than reactive repairs.</p>
-        </div>
-        """, unsafe_allow_html=True)
-
-
+            </div>
+            """, unsafe_allow_html=True)
+    
+    
 def performance_page():
     """Updated performance metrics page with statistical temporal model"""
     st.markdown("<h1 class=\"main-header\">📊 Performance Metrics - Statistical Temporal Model</h1>", unsafe_allow_html=True)
-    
-    st.markdown("""
+        
+        st.markdown("""
     <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
                color: white; padding: 20px; border-radius: 10px; margin: 20px 0;">
     <h3>🎯 Current Best Model: Statistical Temporal Analysis</h3>
     <p>This page shows the performance metrics for our final, most advanced model that uses 
     statistical temporal analysis with Mahalanobis distance for anomaly detection.</p>
-    </div>
-    """, unsafe_allow_html=True)
-    
+        </div>
+        """, unsafe_allow_html=True)
+
     # Model Performance Metrics
     st.markdown("<h2 class=\"section-header\">�� Model Performance</h2>", unsafe_allow_html=True)
     
@@ -384,7 +384,7 @@ def performance_page():
     col1, col2 = st.columns(2)
     
     with col1:
-        st.markdown("""
+            st.markdown("""
         <div class="success-box">
         <h4>📈 Performance Gains</h4>
         <ul>
@@ -392,12 +392,12 @@ def performance_page():
         <li><strong>+15.7%</strong> Precision improvement</li>
         <li><strong>+11.4%</strong> Recall improvement</li>
         <li><strong>+13.6%</strong> F1-Score improvement</li>
-        </ul>
-        </div>
-        """, unsafe_allow_html=True)
+            </ul>
+            </div>
+            """, unsafe_allow_html=True)
     
     with col2:
-        st.markdown("""
+            st.markdown("""
         <div class="success-box">
         <h4>🔧 Technical Advances</h4>
         <ul>
@@ -405,29 +405,29 @@ def performance_page():
         <li><strong>Time-series analysis</strong> vs static classification</li>
         <li><strong>Statistical thresholds</strong> vs assumed ranges</li>
         <li><strong>Real-time detection</strong> vs batch processing</li>
-        </ul>
-        </div>
-        """, unsafe_allow_html=True)
-
-
+            </ul>
+            </div>
+            """, unsafe_allow_html=True)
+    
+    
 def insights_page():
     """Research insights and key discoveries"""
     st.markdown("<h1 class=\"main-header\">🔬 Research Insights & Key Discoveries</h1>", unsafe_allow_html=True)
     
-    st.markdown("""
+            st.markdown("""
     <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
                color: white; padding: 20px; border-radius: 10px; margin: 20px 0;">
     <h3>🎯 Research Journey Summary</h3>
     <p>This page documents the critical insights and discoveries that shaped the evolution of our 
     predictive maintenance system from basic classification to advanced statistical temporal analysis.</p>
-    </div>
-    """, unsafe_allow_html=True)
+            </div>
+            """, unsafe_allow_html=True)
     
     # Major Research Insights
     st.markdown("<h2 class=\"section-header\">💡 Major Research Insights</h2>", unsafe_allow_html=True)
     
     # Insight 1: Temporal Nature
-    st.markdown("""
+            st.markdown("""
     <div style="background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%); 
                padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #ff6b6b;">
     <h3>🔍 Insight 1: Tool Wear is Temporal, Not Static</h3>
@@ -435,11 +435,11 @@ def insights_page():
     <p><strong>Discovery:</strong> Tool wear is a <strong>continuous progression over time</strong> that follows predictable patterns.</p>
     <p><strong>Impact:</strong> This fundamental insight led to the development of time-series analysis methods and 
     the creation of 156 temporal features including rolling statistics, trend analysis, and cumulative changes.</p>
-    </div>
-    """, unsafe_allow_html=True)
+            </div>
+            """, unsafe_allow_html=True)
     
     # Insight 2: Statistical Thresholds
-    st.markdown("""
+        st.markdown("""
     <div style="background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%); 
                padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #ff6b6b;">
     <h3>📊 Insight 2: Statistical Rigor vs Assumptions</h3>
@@ -447,9 +447,9 @@ def insights_page():
     <p><strong>Discovery:</strong> Statistical analysis of 25,000+ operations revealed that <strong>data-driven thresholds</strong> 
     using Mahalanobis distance provide much more reliable anomaly detection.</p>
     <p><strong>Impact:</strong> Achieved 95% confidence intervals and significantly reduced false positives.</p>
-    </div>
-    """, unsafe_allow_html=True)
-    
+        </div>
+        """, unsafe_allow_html=True)
+
     # Insight 3: Feature Engineering
     st.markdown("""
     <div style="background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%); 
@@ -480,7 +480,7 @@ def insights_page():
     col1, col2 = st.columns(2)
     
     with col1:
-        st.markdown("""
+            st.markdown("""
         <div class="success-box">
         <h4>📊 Data Analysis</h4>
         <ul>
@@ -488,9 +488,9 @@ def insights_page():
         <li><strong>25,000+ data points</strong> from real CNC operations</li>
         <li><strong>12 key sensors</strong> monitored continuously</li>
         <li><strong>Statistical validation</strong> using Mahalanobis distance</li>
-        </ul>
-        </div>
-        """, unsafe_allow_html=True)
+            </ul>
+            </div>
+            """, unsafe_allow_html=True)
     
     with col2:
         st.markdown("""
@@ -516,15 +516,15 @@ def insights_page():
     often reveal patterns that human intuition misses. The combination of both approaches led to the best results.</p>
     </div>
     """, unsafe_allow_html=True)
-    
-    st.markdown("""
+        
+        st.markdown("""
     <div style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); 
                color: white; padding: 20px; border-radius: 10px; margin: 20px 0;">
     <h4>⚡ Performance vs Interpretability Trade-off</h4>
     <p>Advanced models with 156 features achieve better performance, but require careful feature engineering and 
     statistical validation to ensure interpretability and reliability.</p>
-    </div>
-    """, unsafe_allow_html=True)
+        </div>
+        """, unsafe_allow_html=True)
 
     main()
 
@@ -556,12 +556,12 @@ def tool_wear_page():
     
     if os.path.exists('feature_importance.png'):
         col1, col2 = st.columns([2, 1])
-        
-        with col1:
+    
+    with col1:
             st.image('feature_importance.png', use_container_width=True)
-        
-        with col2:
-            st.markdown("""
+    
+    with col2:
+        st.markdown("""
             <div class="insight-box">
             <h4>🏆 ML Model Feature Importance:</h4>
             <ol>
@@ -573,30 +573,27 @@ def tool_wear_page():
             
             <li><strong>Y1_OutputCurrent (0.068)</strong><br>
             <small>Y-axis current also important for wear detection</small></li>
-            
-            <li><strong>S1_CommandPosition (0.058)</strong><br>
-            <small>Spindle position commands change with wear</small></li>
-            </ol>
-            </div>
-            """, unsafe_allow_html=True)
+        </ol>
+        </div>
+        """, unsafe_allow_html=True)
     
     # Feature Distributions
     st.markdown('<h2 class="section-header">📊 Feature Distribution Analysis</h2>', unsafe_allow_html=True)
     
     if os.path.exists('feature_distributions.png'):
         st.image('feature_distributions.png', use_container_width=True)
-        
-        st.markdown("""
-        <div class="insight-box">
+    
+    st.markdown("""
+    <div class="insight-box">
         <h4>📋 Distribution Insights:</h4>
         <ul>
         <li><strong>Current Feedback:</strong> Worn tools show higher current consumption</li>
         <li><strong>Feedrate:</strong> Worn tools operate at different feedrates</li>
         <li><strong>Voltage Patterns:</strong> Clear differences in voltage behavior</li>
         <li><strong>Position Accuracy:</strong> Worn tools show position deviations</li>
-        </ul>
-        </div>
-        """, unsafe_allow_html=True)
+    </ul>
+    </div>
+    """, unsafe_allow_html=True)
 
 
 def quality_page():
@@ -974,8 +971,8 @@ def statistical_temporal_analysis_page():
         <h3>🧠 Mahalanobis</h3>
         <h2>21.0</h2>
         <p>Anomaly threshold</p>
-        </div>
-        """, unsafe_allow_html=True)
+    </div>
+    """, unsafe_allow_html=True)
     
     # File upload
     st.markdown('<h3 class="section-header">📁 Upload CNC Data for Statistical Analysis</h3>', unsafe_allow_html=True)
@@ -1099,7 +1096,7 @@ def statistical_temporal_analysis_page():
             # Statistical wear progression chart
             st.markdown('<h4 class="section-header">📈 Sensor Pattern Analysis Over Time</h4>', unsafe_allow_html=True)
             
-            st.markdown("""
+                st.markdown("""
             **Chart Explanation:** This shows how the tool's sensor patterns (cutting forces, vibrations, power) change during the operation. 
             Higher percentages indicate more intense patterns, which can signal tool degradation.
             """)
@@ -1245,13 +1242,13 @@ def statistical_temporal_analysis_page():
                             <p>{'Frequent anomalies' if len(threshold_crossings) > len(mahal_distances)*0.1 else 'Occasional anomalies' if len(threshold_crossings) > 0 else 'No anomalies'}</p>
                         </div>
                     </div>
-                    </div>
-                    """, unsafe_allow_html=True)
-                    
+                </div>
+                """, unsafe_allow_html=True)
+        
                 else:
                     st.warning("⚠️ Mahalanobis distance data not available for this experiment.")
                     
-            except Exception as e:
+        except Exception as e:
                 st.error(f"❌ Error creating experiment-specific analysis: {str(e)}")
             
             # Statistical benefits
@@ -1295,5 +1292,5 @@ def main():
         insights_page()
 
 if __name__ == "__main__":
-    main()
+    main() 
 

@@ -79,7 +79,7 @@ class ToolWearAnalyzer:
             # Current feedback and voltage (most important for prediction)
             'X1_CurrentFeedback', 'Y1_CurrentFeedback', 'Z1_CurrentFeedback', 'S1_CurrentFeedback',
             'X1_DCBusVoltage', 'Y1_DCBusVoltage', 'Z1_DCBusVoltage', 'S1_DCBusVoltage',
-            'X1_OutputCurrent', 'Y1_OutputCurrent', 'Z1_OutputCurrent',
+            'X1_OutputCurrent', 'Y1_OutputCurrent', 'Z1_OutputCurrent', 'S1_OutputCurrent',
             'X1_OutputVoltage', 'Y1_OutputVoltage', 'Z1_OutputVoltage', 'S1_OutputVoltage',
             'X1_OutputPower', 'Y1_OutputPower', 'S1_OutputPower',
             
@@ -93,6 +93,8 @@ class ToolWearAnalyzer:
             'X1_CommandAcceleration', 'Y1_CommandAcceleration', 'Z1_CommandAcceleration', 'S1_CommandAcceleration',
             
             # Position differences (system performance)
+            'X1_ActualPosition', 'Y1_ActualPosition', 'Z1_ActualPosition', 'S1_ActualPosition',
+            'X1_CommandPosition', 'Y1_CommandPosition', 'Z1_CommandPosition', 'S1_CommandPosition',
             
             # System inertia
             'S1_SystemInertia'
